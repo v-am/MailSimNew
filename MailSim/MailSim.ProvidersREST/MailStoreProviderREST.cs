@@ -16,12 +16,12 @@ namespace MailSim.ProvidersREST
 
         private static IDictionary<string, string> _predefinedFolders = new Dictionary<string, string>
         {
-            {"olFolderInbox", "Inbox"},
-            {"olFolderDeletedItems", "Deleted Items"},
-            {"olFolderDrafts", "Drafts"},
-            {"olFolderJunk", "Junk Email"},
-            {"olFolderOutbox", "Outbox"},
-            {"olFolderSentMail", "Sent Items"},
+            {"olFolderInbox",       "Inbox"},
+            {"olFolderDeletedItems","Deleted Items"},
+            {"olFolderDrafts",      "Drafts"},
+            {"olFolderJunk",        "Junk Email"},
+            {"olFolderOutbox",      "Outbox"},
+            {"olFolderSentMail",    "Sent Items"},
         };
 
         public MailStoreProviderREST(string mailboxName)
