@@ -113,6 +113,12 @@ namespace MailSim.ProvidersOM
             }
         }
 
+        public IEnumerable<IMailItem> GetMailItems(string filter, int count)
+        {
+            // TODO: Implement this
+            yield break;
+        }
+
         private IEnumerable<IMailItem> GetMailItems()
         {
             if (null == _folder.Items)

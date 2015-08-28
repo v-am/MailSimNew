@@ -8,9 +8,9 @@ using System.Dynamic;
 
 namespace MailSim.ProvidersREST
 {
-    static class Util
+    static class HttpUtil
     {
-        private const string baseUri = @"https://outlook.office365.com/api/v1.0/Me/";
+        private const string baseOutlookUri = @"https://outlook.office.com/api/v1.0/Me/";
 
         internal static async Task<T> GetItemAsync<T>(string uri)
         {
@@ -19,9 +19,33 @@ namespace MailSim.ProvidersREST
 
         internal static async Task<T> GetItemsAsync<T>(string uri)
         {
-            var coll = await DoHttp<ODataCollection<T>, ODataCollection<T>>(HttpMethod.Get, uri, default(ODataCollection<T>));
+            var coll = await GetCollectionAsync<T>(uri);
 
             return coll.value;
+        }
+
+        internal static IEnumerable<T> EnumerateCollection<T>(string uri, int count)
+        {
+            while (uri != null)
+            {
+                var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
+
+                foreach (var m in msgsColl.value)
+                {
+                    if (--count <= 0)
+                    {
+                        yield break;
+                    }
+                    yield return m;
+                }
+
+                uri = msgsColl.NextLink;
+            }
+        }
+
+        internal static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri)
+        {
+            return await DoHttp<ODataCollection<T>, ODataCollection<T>>(HttpMethod.Get, uri, default(ODataCollection<T>));
         }
 
         internal static async Task<T> PostItemAsync<T>(string uri, T item=default(T))
@@ -83,7 +107,7 @@ namespace MailSim.ProvidersREST
                 return subUri;
             }
 
-            return baseUri + subUri;
+            return baseOutlookUri + subUri;
         }
 
         private static HttpClient GetHttpClient()
@@ -98,8 +122,11 @@ namespace MailSim.ProvidersREST
             return client;
         }
 
-        private class ODataCollection<TCollection>
+        internal class ODataCollection<TCollection>
         {
+            [Newtonsoft.Json.JsonProperty("@odata.nextLink")]
+            public string NextLink { get; set; }
+
             public TCollection value { get; set; }
         }
     }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace MailSim.Common.Contracts
 {
@@ -13,12 +9,12 @@ namespace MailSim.Common.Contracts
         /// </summary>
         /// <param name="match"> string to match in user name or null to return all users in the GAL</param>
         /// <returns>List of SMTP addresses of matching users in the address list. The list will be empty if no users exist or match.</returns>
-        IEnumerable<string> GetUsers(string match);
+        IEnumerable<string> GetUsers(string match, int count);
         /// <summary>
         /// Builds list of addresses for all members of Exchange Distribution list in the Address List
         /// </summary>
         /// <param name="dLName">Exchane Distribution List Name</param>
         /// <returns>List of SMTP addresses of DL members or null if DL is not found. Nesting DLs are not expanded. </returns>
-        IEnumerable<string> GetDLMembers(string dLName);
+        IEnumerable<string> GetDLMembers(string dLName, int count);
     }
 }

@@ -86,10 +86,6 @@
       <Project>{dbc832c7-790d-4ccb-85fb-1f49a35244db}</Project>
       <Name>MailSim.ProvidersREST</Name>
     </ProjectReference>
-    <ProjectReference Include="..\MailSim.ProvidersSDK\MailSim.ProvidersSDK.csproj">
-      <Project>{14c3dfe3-85ec-4dc4-8da6-312bba28d275}</Project>
-      <Name>MailSim.ProvidersSDK</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

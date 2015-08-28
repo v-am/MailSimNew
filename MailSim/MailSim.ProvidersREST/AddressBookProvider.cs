@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using MailSim.Common.Contracts;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
+using Microsoft.Azure.ActiveDirectory.GraphClient.Extensions;
 
 namespace MailSim.ProvidersREST
 {
@@ -23,34 +24,28 @@ namespace MailSim.ProvidersREST
         /// </summary>
         /// <param name="match"> string to match in user name or null to return all users in the GAL</param>
         /// <returns>List of SMTP addresses of matching users in the address list. The list will be empty if no users exist or match.</returns>
-        public IEnumerable<string> GetUsers(string match)
+        public IEnumerable<string> GetUsers(string match, int count)
         {
             match = match ?? string.Empty;
 
-            return EnumerateUsers()
-                .Where(x => x.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0);
+            return EnumerateUsers(match, count);
         }
 
-        private IEnumerable<string> EnumerateUsers()
+        private IEnumerable<string> EnumerateUsers(string match, int count)
         {
             var pagedUsers = _adClient.Users
-                .Where(x => x.UserPrincipalName.StartsWith("oi"))
-                .ExecuteAsync().Result;
+                .Where(
+                    x => x.UserPrincipalName.StartsWith(match) ||
+                    x.DisplayName.StartsWith(match) ||
+                    x.GivenName.StartsWith(match) ||
+                    x.Surname.StartsWith(match)
+                )
+                .ExecuteAsync()
+                .Result;
 
-            foreach (var item in pagedUsers.CurrentPage)
-            {
-                yield return item.UserPrincipalName;
-            }
+            var users = GetFilteredItems(pagedUsers, count, (u) => true);
 
-            while (pagedUsers.MorePagesAvailable)
-            {
-                pagedUsers = pagedUsers.GetNextPageAsync().Result;
-
-                foreach (var item in pagedUsers.CurrentPage)
-                {
-                    yield return item.UserPrincipalName;
-                }
-            }
+            return users.Select(u => u.UserPrincipalName);
         }
 
         /// <summary>
@@ -58,30 +53,49 @@ namespace MailSim.ProvidersREST
         /// </summary>
         /// <param name="dLName">Exchane Distribution List Name</param>
         /// <returns>List of SMTP addresses of DL members or null if DL is not found. Nesting DLs are not expanded. </returns>
-        public IEnumerable<string> GetDLMembers(string dLName)
+        public IEnumerable<string> GetDLMembers(string dLName, int count)
         {
             var groups = _adClient.Groups
                 .Where(g => g.Mail.StartsWith(dLName))
-                .ExecuteAsync().Result.CurrentPage;
+                .ExecuteAsync()
+                .Result
+                .CurrentPage;   // assume we are going to use the first matching group
 
             if (groups.Any() == false)
             {
-                yield break;
+                return Enumerable.Empty<string>();
             }
 
             var group = groups.First() as Group;
             IGroupFetcher groupFetcher = group;
 
-            var members = groupFetcher.Members.ExecuteAsync().Result;
+            var pages = groupFetcher.Members.ExecuteAsync().Result;
 
-            foreach (var member in members.CurrentPage)
+            var members = GetFilteredItems(pages, count, (member) => member is User);
+
+            return members.Select(m => (m as User).UserPrincipalName);
+        }
+
+        private IEnumerable<T> FilterAndTake<T>(IReadOnlyCollection<T> page, ref int count, Func<T, bool> filter)
+        {
+            var items = page.Where(x => filter(x)).Take(count);
+            count -= page.Count;
+
+            return items;
+        }
+
+        private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
+        {
+            var items = FilterAndTake(pages.CurrentPage, ref count, filter);
+
+            while (count > 0 && pages.MorePagesAvailable)
             {
-                if (member is User)
-                {
-                    var user = member as User;
-                    yield return user.UserPrincipalName;
-                }
+                pages = pages.GetNextPageAsync().Result;
+
+                items.Union(FilterAndTake(pages.CurrentPage, ref count, filter));
             }
+
+            return items;
         }
     }
 }

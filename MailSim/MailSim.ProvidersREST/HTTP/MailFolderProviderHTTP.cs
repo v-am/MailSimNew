@@ -9,23 +9,26 @@ using System.Net;
 
 namespace MailSim.ProvidersREST
 {
-    class MailFolderProvider : IMailFolder
+    class MailFolderProviderHTTP : IMailFolder
     {
         private readonly Folder _folder;
 //        private string _subscriptionId;
 
-        internal MailFolderProvider(Folder folder)
+        internal MailFolderProviderHTTP(Folder folder, string name = null)
         {
             _folder = folder;
-        }
 
-        public string Name
-        {
-            get
+            if (name != null)
             {
-                return _folder.DisplayName;
+                Name = name;
+            }
+            else if (_folder != null)
+            {
+                Name = _folder.DisplayName;
             }
         }
+
+        public string Name { get; private set; }
 
         public string FolderPath
         {
@@ -53,7 +56,7 @@ namespace MailSim.ProvidersREST
 
         private int GetMailCount()
         {
-            return Util.GetItemAsync<int>(Uri + "/Messages/$count").Result;
+            return HttpUtil.GetItemAsync<int>(Uri + "/Messages/$count").Result;
         }
 
         public int SubFoldersCount
@@ -66,7 +69,14 @@ namespace MailSim.ProvidersREST
 
         private int GetChildFolderCount()
         {
-            return Util.GetItemAsync<int>(Uri + "/ChildFolders/$count").Result;
+            if (_folder == null)
+            {
+                return HttpUtil.GetItemAsync<int>("Folders/$count").Result;
+            }
+            else
+            {
+                return HttpUtil.GetItemAsync<int>(Uri + "/ChildFolders/$count").Result;
+            }
         }
 
         public IEnumerable<IMailItem> MailItems
@@ -87,24 +97,41 @@ namespace MailSim.ProvidersREST
 
         public void Delete()
         {
-            Util.DeleteAsync(Uri).Wait();
+            HttpUtil.DeleteAsync(Uri).Wait();
+        }
+
+        public IEnumerable<IMailItem> GetMailItems(string filter, int count)
+        {
+            var msgs = GetMessages(filter, count);
+
+            var items = msgs.Select(x => new MailItemProviderHTTP(x));
+
+            filter = filter.ToLower();
+            return items.Where(i => i.Subject.ToLower().Contains(filter));
+        }
+
+        private IEnumerable<MailItemProviderHTTP.Message> GetMessages(string filter, int count)
+        {
+            string uri = Uri + string.Format("/Messages?$search=\"{1}\"&$top={0}", count, filter);
+
+            return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
         }
 
         private IEnumerable<IMailItem> GetMailItems(int count)
         {
             var msgs = GetMessages(count);
 
-            return msgs.Select(x => new MailItemProvider(x));
+            return msgs.Select(x => new MailItemProviderHTTP(x));
         }
 
-        private IEnumerable<MailItemProvider.Message> GetMessages(int count)
+        private IEnumerable<MailItemProviderHTTP.Message> GetMessages(int count)
         {
             int pageSize = 0;
 
             while (count > 0)
             {
                 var uri = Uri + string.Format("/Messages?$skip={1}&$top={0}", count, pageSize);
-                var msgs = Util.GetItemsAsync<IEnumerable<MailItemProvider.Message>>(uri).Result;
+                var msgs = HttpUtil.GetItemsAsync<IEnumerable<MailItemProviderHTTP.Message>>(uri).Result;
 
                 pageSize = msgs.Count();
 
@@ -122,9 +149,9 @@ namespace MailSim.ProvidersREST
             dynamic folderName = new ExpandoObject();
             folderName.DisplayName = name;
 
-            Folder newFolder = Util.PostDynamicAsync<Folder>(Uri + "/ChildFolders", folderName).Result;
+            Folder newFolder = HttpUtil.PostDynamicAsync<Folder>(Uri + "/ChildFolders", folderName).Result;
 
-            return new MailFolderProvider(newFolder);
+            return new MailFolderProviderHTTP(newFolder);
         }
 
         public IEnumerable<IMailFolder> SubFolders
@@ -139,9 +166,9 @@ namespace MailSim.ProvidersREST
         {
             string uri = _folder == null ? "Folders" : Uri + "/ChildFolders";
 
-            IEnumerable<Folder> folders = Util.GetItemsAsync<List<Folder>>(uri).Result;
+            var folders = HttpUtil.EnumerateCollection<Folder>(uri, int.MaxValue);
 
-            return folders.Select(f => new MailFolderProvider(f));
+            return folders.Select(f => new MailFolderProviderHTTP(f));
         }
 
         public void RegisterItemAddEventHandler(Action<IMailItem> callback)

@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 using MailSim.Common.Contracts;
 using System.IO;
 
-namespace MailSim.ProvidersSDK
+namespace MailSim.ProvidersREST
 {
-    class MailItemProvider : IMailItem
+    class MailItemProviderSDK : IMailItem
     {
         private readonly OutlookServicesClient _outlookClient;
         private readonly IMessage _message;
 
-        public MailItemProvider(OutlookServicesClient outlookClient, IMessage msg)
+        public MailItemProviderSDK(OutlookServicesClient outlookClient, IMessage msg)
         {
             _outlookClient = outlookClient;
            _message = msg;
@@ -63,11 +63,11 @@ namespace MailSim.ProvidersSDK
         {
             IMessage message = null;
             
-            Util.Synchronize(async() => message = await _outlookClient.Me.Messages[_message.Id].ExecuteAsync());
+            message = _outlookClient.Me.Messages[_message.Id].ExecuteAsync().Result;
 
             action(message);
             
-            Util.Synchronize(async() => await message.UpdateAsync());
+            message.UpdateAsync().Wait();
         }
 
         public void AddRecipient(string recipient)
@@ -99,7 +99,7 @@ namespace MailSim.ProvidersSDK
                     Size = bytes.Length
                 };
 
-                Util.Synchronize(async() => await msgFetcher.Attachments.AddAttachmentAsync(fileAttachment));
+                msgFetcher.Attachments.AddAttachmentAsync(fileAttachment).Wait();
             }
         }
 
@@ -144,43 +144,43 @@ namespace MailSim.ProvidersSDK
 
             if (replyAll)
             {
-                Util.Synchronize(async () => replyMsg = await Message.CreateReplyAllAsync());
+                replyMsg = Message.CreateReplyAllAsync().Result;
             }
             else
             {
-                Util.Synchronize(async () => replyMsg = await Message.CreateReplyAsync());
+                replyMsg = Message.CreateReplyAsync().Result;
             }
 
-            return new MailItemProvider(_outlookClient, replyMsg);
+            return new MailItemProviderSDK(_outlookClient, replyMsg);
         }
 
         public IMailItem Forward()
         {
             IMessage msg = null;
 
-            Util.Synchronize(async () => msg = await Message.CreateForwardAsync());
+            msg = Message.CreateForwardAsync().Result;
 
-            return new MailItemProvider(_outlookClient, msg);
+            return new MailItemProviderSDK(_outlookClient, msg);
         }
 
         public void Send()
         {
             // This generates Me/SendMail; all the data should be in the body
-            Util.Synchronize(async () => await Message.SendAsync());
+            Message.SendAsync().Wait();
         }
         
         // TODO: Should this method return a IMailItem?
         public void Move(IMailFolder newFolder)
         {
-            MailFolderProvider folderProvider = newFolder as MailFolderProvider;
+            var folderProvider = newFolder as MailFolderProviderSDK;
 
             var folderId = folderProvider.Handle;
-            Util.Synchronize(async () => await Message.MoveAsync(folderId));
+            Message.MoveAsync(folderId).Wait();
         }
 
         public void Delete()
         {
-            Util.Synchronize(async () => await _message.DeleteAsync());
+            _message.DeleteAsync().Wait();
         }
 
         public bool ValidateRecipients()

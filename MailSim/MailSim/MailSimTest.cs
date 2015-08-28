@@ -58,6 +58,8 @@ namespace MailSim
             // Display all top folders in the mailbox
             IMailFolder rootFolder = mailStore.RootFolder;
 
+            string rootName = rootFolder.Name;
+            int foldersCount = rootFolder.SubFoldersCount;
             var rootFolders = rootFolder.SubFolders;
 
             foreach (var mailFolder in rootFolders)
@@ -89,6 +91,14 @@ namespace MailSim
             if (null == testFolder)
             {
                 testFolder = inbox.AddSubFolder(testFolderName);
+            }
+
+            var items = inbox.GetMailItems("azure", 50);
+
+            int index = 0;
+            foreach (var i in items)
+            {
+                Console.WriteLine("{0}:{1}", index++, i.Subject);
             }
 
             // Adding folder under Test Folder
@@ -134,7 +144,7 @@ namespace MailSim
 
             var gal = mailStore.GetGlobalAddressList();
 
-            foreach (string userAddress in gal.GetUsers("mailsim"))
+            foreach (string userAddress in gal.GetUsers("alex", 100))
             {
                 newMail.AddRecipient(userAddress);
             }
@@ -142,7 +152,7 @@ namespace MailSim
             if (newMail.ValidateRecipients())
             {
                 newMail.Send();
-                Console.WriteLine("Mail to specified users  sent!");
+                Console.WriteLine("Mail to specified users sent!");
             }
             else
             {
@@ -156,7 +166,7 @@ namespace MailSim
             newMail.Body = "Test from MailSim to DL members";
             newMail.AddRecipient(mailboxName);
 
-            var members = gal.GetDLMembers("rodina"/*"Mailsim Users"*/);
+            var members = gal.GetDLMembers("Mailsim Users", 200);
 
             if (members.Any() == false)
             {

@@ -21,6 +21,9 @@ namespace MailSim.Common.Contracts
         /// </summary>
         /// <returns>IEnumerable of IMailItem</returns>
         IEnumerable<IMailItem> MailItems { get; }
+
+        IEnumerable<IMailItem> GetMailItems(string filter, int count);
+
         /// <summary>
         /// Collection of subfolders within this folder
         /// </summary>

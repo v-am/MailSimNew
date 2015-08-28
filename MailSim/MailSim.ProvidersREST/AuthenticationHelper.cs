@@ -90,6 +90,11 @@ namespace MailSim.ProvidersREST
             return GetTokenHelper(_authenticationContext, resourceId);
         }
 
+        internal static async Task<string> GetTokenAsync(string resourceId)
+        {
+            return await GetTokenHelperAsync(_authenticationContext, resourceId);
+        }
+
         // Get an access token for the given context and resourceId. An attempt is first made to 
         // acquire the token silently. If that fails, then we try to acquire the token by prompting the user.
         // TODO: Find a way to call context.AcquireTokenAsync directly.
