@@ -76,26 +76,28 @@ namespace MailSim.ProvidersREST
             return members.Select(m => (m as User).UserPrincipalName);
         }
 
-        private IEnumerable<T> FilterAndTake<T>(IReadOnlyCollection<T> page, ref int count, Func<T, bool> filter)
-        {
-            var items = page.Where(x => filter(x)).Take(count);
-            count -= page.Count;
-
-            return items;
-        }
-
         private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
         {
-            var items = FilterAndTake(pages.CurrentPage, ref count, filter);
+            foreach (var item in pages.CurrentPage)
+            {
+                if (filter(item) && count-- > 0)
+                {
+                    yield return item;
+                }
+            }
 
             while (count > 0 && pages.MorePagesAvailable)
             {
                 pages = pages.GetNextPageAsync().Result;
 
-                items.Union(FilterAndTake(pages.CurrentPage, ref count, filter));
+                foreach (var item in pages.CurrentPage)
+                {
+                    if (filter(item) && count-- > 0)
+                    {
+                        yield return item;
+                    }
+                }
             }
-
-            return items;
         }
     }
 }

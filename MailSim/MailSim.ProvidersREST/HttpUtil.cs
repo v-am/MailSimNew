@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using System.Net.Http.Formatting;
 using System.Dynamic;
+using System.Linq;
 
 namespace MailSim.ProvidersREST
 {
@@ -26,6 +27,21 @@ namespace MailSim.ProvidersREST
 
         internal static IEnumerable<T> EnumerateCollection<T>(string uri, int count)
         {
+#if true
+            IEnumerable<T> items = Enumerable.Empty<T>();
+
+            while (uri != null)
+            {
+                var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
+
+                items = items.Union(msgsColl.value.Take(count));
+                count -= msgsColl.value.Count();
+
+                uri = msgsColl.NextLink;
+            }
+
+            return items;
+#else
             while (uri != null)
             {
                 var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
@@ -41,6 +57,7 @@ namespace MailSim.ProvidersREST
 
                 uri = msgsColl.NextLink;
             }
+#endif
         }
 
         internal static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri)

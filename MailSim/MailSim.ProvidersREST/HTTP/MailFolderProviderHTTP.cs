@@ -83,7 +83,7 @@ namespace MailSim.ProvidersREST
         {
             get
             {
-                return GetMailItems(GetMailCount());
+                return GetMailItems(string.Empty, GetMailCount());
             }
         }
 
@@ -117,6 +117,7 @@ namespace MailSim.ProvidersREST
             return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
         }
 
+#if false
         private IEnumerable<IMailItem> GetMailItems(int count)
         {
             var msgs = GetMessages(count);
@@ -133,17 +134,15 @@ namespace MailSim.ProvidersREST
                 var uri = Uri + string.Format("/Messages?$skip={1}&$top={0}", count, pageSize);
                 var msgs = HttpUtil.GetItemsAsync<IEnumerable<MailItemProviderHTTP.Message>>(uri).Result;
 
-                pageSize = msgs.Count();
-
                 foreach (var m in msgs)
                 {
                     yield return m;
                 }
 
-                count -= pageSize;
+                count -= msgs.Count();
             }
         }
-
+#endif
         public IMailFolder AddSubFolder(string name)
         {
             dynamic folderName = new ExpandoObject();
