@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="CommonTypes"
+    targetNamespace="http://tempuri.org/CommonTypes.xsd"
+    elementFormDefault="qualified"
+    xmlns="http://tempuri.org/CommonTypes.xsd"
+    xmlns:mstns="http://tempuri.org/CommonTypes.xsd"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  <xs:complexType name="Recipients">
+    <xs:choice>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Recipient" type="xs:string" />
+      <!-- Random recipients will be queried from the address book. If the value is 0, it will send
+                  to random number of recipients. Otherwise, it will send email to the specified number
+                  of random recipients.-->
+      <xs:element minOccurs="0" maxOccurs="1" name="RandomRecipients">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:integer">
+              <!-- Specify whether to pick random users from a specific Distribution List. It'll 
+                          pick from all users if DistributionList is "".-->
+              <xs:attribute name="DistributionList" type="xs:string" use="required" />
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="Attachments">
+    <xs:choice>
+      <!-- Use absolute path for the attachement.-->
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Attachment" type="xs:string" />
+      <!-- Specify the file path for the random attachments-->
+      <xs:element minOccurs="0" name="RandomAttachments">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <!-- If Count is a non-zero value, it will attach the specified number of random attachments.
+                            If Count is 0, it will attach a random number of attachments. -->
+              <xs:attribute name="Count" type="xs:integer"  use="optional"/>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+  </xs:complexType>
+
+</xs:schema>

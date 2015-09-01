@@ -30,16 +30,15 @@ namespace MailSim.ProvidersOM
         /// <returns>List of SMTP addresses of matching users in the address list. The list will be empty if no users exist or match.</returns>
         public IEnumerable<string> GetUsers(string match, int count)
         {
+            match = match ?? string.Empty;
+
             foreach (Outlook.AddressEntry addrEntry in _addressList.AddressEntries)
             {
                 if (addrEntry.AddressEntryUserType == Outlook.OlAddressEntryUserType.olExchangeUserAddressEntry)
                 {
-                    if (match == null || addrEntry.Name.ContainsCaseInsensitive(match))
+                    if (addrEntry.Name.ContainsCaseInsensitive(match) && count-- > 0)
                     {
-                        if (count-- > 0)
-                        {
-                            yield return addrEntry.GetExchangeUser().PrimarySmtpAddress;
-                        }
+                        yield return addrEntry.GetExchangeUser().PrimarySmtpAddress;
                     }
                 }
             }

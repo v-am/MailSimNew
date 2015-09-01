@@ -39,7 +39,6 @@ namespace MailSim
         private string DefaultInboxMonitor = "DefaultInboxMonitor";
         public static string eventString = "Event";
 
-
         /// <summary>
         /// Constructor
         /// </summary>
@@ -253,7 +252,7 @@ namespace MailSim
         private ParsedOperation ParseOperation(dynamic op, string folder, string subject)
         {
             // Retrieves mails from Outlook
-            IEnumerable<IMailItem> mails = GetMails(op.OperationName, folder, subject);
+            IEnumerable<IMailItem> mails = GetMails(op, folder, subject);
 
             return new ParsedOperation(op, mails.ToList());
         }
@@ -323,7 +322,7 @@ namespace MailSim
 
                 Log.Out(Log.Severity.Info, operation.OperationName, "Body: {0}", mailToForward.Body);
 
-                if (!AddRecipients(mailToForward, operation))
+                if (!AddRecipients(mailToForward, operation/*, operation.Items[0] is MailSimOperationsMailForwardRandomAttachments*/))
                 {
                     return false;
                 }
@@ -594,41 +593,31 @@ namespace MailSim
         /// <param name="type">type of recipients</param>
         /// <param name="recipientObject">recipient object from the Operation XML file</param>
         /// <returns>List of recipients if successful, null otherwise</returns>
-        private List<string> GetRecipients(string name, RecipientTypes[] type, object[] recipientObject)
+//        private List<string> GetRecipients(string name, Recipients recipientObjects)
+        private List<string> GetRecipients(dynamic operation)
         {
-            List<string> recipients = new List<string>(); ;
+            List<string> recipients = new List<string>();
+            string name = operation.OperationName;
+            Recipients recipientObjects = operation.Recipients;
 
             // determines the recipient
-            if (recipientObject == null)
+            if (recipientObjects.Items == null)
             {
-                Log.Out(Log.Severity.Error, name, "Recipient is not specified");
+                Log.Out(Log.Severity.Error, name, "Recipients are not specified");
                 return null;
             }
 
-            if (type[0] == RecipientTypes.Recipients)
+            if (recipientObjects.Items[0] is string)
             {
-                for (int count = 0; count < type.Length; count++)
+                foreach (string recipient in recipientObjects.Items)
                 {
-                    if (type[count] != RecipientTypes.Recipients)
-                    {
-                        Log.Out(Log.Severity.Error, name, "Skipping unknown recipient {0} specified", recipientObject[count].ToString());
-                        continue;
-                    }
-
-                    recipients.Add((string)recipientObject[count]);
+                    recipients.Add(recipient);
                 }
             }
             // random recipients
             else
             {
-                // there should only be 1 value
-                if (type.Length != 1)
-                {
-                    Log.Out(Log.Severity.Warning, name, "More than 1 random recipients is specified, using {0}",
-                        recipientObject[0].ToString());
-                }
-
-                MailSimOperationsRandomRecipients randomRecpt = (MailSimOperationsRandomRecipients)recipientObject[0];
+                var randomRecpt = (RecipientsRandomRecipients)recipientObjects.Items[0];
                 int randomCount = Convert.ToInt32(randomRecpt.Value);
 
                 // query the GAL
@@ -637,16 +626,17 @@ namespace MailSim
                     List<string> galUsers;
 
                     var gal = olMailStore.GetGlobalAddressList();
+                    int userCountForRandom = int.Parse(operation.UserCountForRandomization);
 
                     // uses the global distribution list if not specified
                     if (string.IsNullOrEmpty(randomRecpt.DistributionList))
                     {
-                        galUsers = gal.GetUsers(null, 500).ToList();
+                        galUsers = gal.GetUsers(null, userCountForRandom).ToList();
                     }
                     // queries the specific distribution list if specified
                     else
                     {
-                        galUsers = gal.GetDLMembers(randomRecpt.DistributionList, 100).ToList();
+                        galUsers = gal.GetDLMembers(randomRecpt.DistributionList, userCountForRandom).ToList();
                     }
 
                     if (galUsers.Any() == false)
@@ -695,26 +685,28 @@ namespace MailSim
         /// <param name="name">name of the task</param>
         /// <param name="attachmentObject">attchment object from the Operation XML file</param>
         /// <returns>List of attachments if successful, empty list otherwise</returns>
-        private List<string> GetAttachments(string name, object[] attachmentObject)
+        private List<string> GetAttachments(string name, Attachments attachmentObjects)
         {
             List<string> attachments = new List<string>();
 
             // just return if no attachment is specified
-            if (attachmentObject == null)
+            if (attachmentObjects == null || attachmentObjects.Items == null)
             {
                 return attachments;
             }
 
             // determines the attachment element type
-            if (attachmentObject[0].GetType() == typeof(MailSimOperationsRandomAttachments))
+            if (attachmentObjects.Items[0] is string)
             {
-                if (attachmentObject.Length != 1)
+                foreach (string attachment in attachmentObjects.Items)
                 {
-                    Log.Out(Log.Severity.Warning, name, "More than 1 random attachements is specified, using {0}",
-                        attachmentObject[0]);
+                    attachments.Add(attachment);
                 }
-
-                MailSimOperationsRandomAttachments randomAtt = (MailSimOperationsRandomAttachments)attachmentObject[0];
+            }
+            // Random attachments
+            else
+            {
+                var randomAtt = (AttachmentsRandomAttachments)attachmentObjects.Items[0];
 
                 int randCount = Convert.ToInt32(randomAtt.Count);
 
@@ -753,25 +745,6 @@ namespace MailSim
                     attachments.Add(files[fileNumber]);
                 }
             }
-            else if (attachmentObject[0].GetType() == typeof(string))
-            {
-                for (int count = 0; count < attachmentObject.Length; count++)
-                {
-                    if (attachmentObject[count].GetType() != typeof(string))
-                    {
-                        Log.Out(Log.Severity.Error, name, "Skipping unknown attachment {0}. Expecting attachments path name string.",
-                            attachmentObject[0].ToString());
-                    }
-                    else
-                    {
-                        attachments.Add((string)attachmentObject[count]);
-                    }
-                }
-            }
-            else
-            {
-                Log.Out(Log.Severity.Error, name, "Unknown attachment type {0}", attachmentObject[0].GetType());
-            }
 
             return attachments;
         }
@@ -784,34 +757,26 @@ namespace MailSim
         /// <param name="folder">folder to retrieve</param>
         /// <param name="subject">case sensitive subject to match</param>
         /// <returns>list of mails if successful, null otherwise</returns>
-        private IEnumerable<IMailItem> GetMails(string operationName, string folder, string subject)
+        private IEnumerable<IMailItem> GetMails(dynamic op, string folder, string subject)
         {
             // retrieves the Outlook folder
             IMailFolder mailFolder = olMailStore.GetDefaultFolder(folder);
             if (mailFolder == null)
             {
-                Log.Out(Log.Severity.Error, operationName, "Unable to retrieve folder {0}",
+                Log.Out(Log.Severity.Error, op.OperationName, "Unable to retrieve folder {0}",
                     folder);
                 return Enumerable.Empty<IMailItem>();
             }
 
             // retrieves the mail items from the folder
-            var mails = mailFolder.MailItems;
+            int mailCountForRandom = int.Parse(op.MailCountForRandomization);
+
+            var mails = mailFolder.GetMailItems(subject, mailCountForRandom);
 
             if (mails.Any() == false)
             {
-                Log.Out(Log.Severity.Error, operationName, "No items in folder {0}", folder);
+                Log.Out(Log.Severity.Error, op.OperationName, "No items with subject {0} in folder {1}", subject, folder);
                 return mails;
-            }
-
-            // finds all mail items with matching subject if specified
-            subject = subject ?? string.Empty;
-            mails = mails.Where(x => x.Subject.Contains(subject));
-
-            if (mails.Any() == false)
-            {
-                Log.Out(Log.Severity.Error, operationName, "Unable to find mail with subject {0}",
-                    subject);
             }
 
             return mails;
@@ -841,7 +806,8 @@ namespace MailSim
 
         private bool AddRecipients(IMailItem mail, dynamic operation)
         {
-            List<string> recipients = GetRecipients(operation.OperationName, operation.RecipientType, operation.Recipients);
+//            List<string> recipients = GetRecipients(operation.OperationName, operation.Recipients);
+            var recipients = GetRecipients(operation);
 
             if (recipients == null)
             {
@@ -861,7 +827,7 @@ namespace MailSim
 
         private void AddAttachments(IMailItem mail, dynamic operation)
         {
-            List<string> attachments = GetAttachments(operation.OperationName, operation.Attachments);
+            var attachments = GetAttachments(operation.OperationName, operation.Attachments);
 
             foreach (string attmt in attachments)
             {

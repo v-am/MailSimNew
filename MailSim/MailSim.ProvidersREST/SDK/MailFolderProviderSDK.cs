@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Office365.OutlookServices;
 using MailSim.Common.Contracts;
 using Microsoft.OData.ProxyExtensions;
+using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
@@ -122,9 +123,9 @@ namespace MailSim.ProvidersREST
                 .ExecuteAsync()
                 .Result;
 
-            filter = filter.ToLower();
+            filter = filter ?? string.Empty;
 
-            var items = GetFilteredItems(pages, count, (i) => i.Subject.ToLower().Contains(filter));
+            var items = GetFilteredItems(pages, count, (i) => i.Subject.ContainsCaseInsensitive(filter));
 
             return items.Select(i => new MailItemProviderSDK(_outlookClient, i));
         }

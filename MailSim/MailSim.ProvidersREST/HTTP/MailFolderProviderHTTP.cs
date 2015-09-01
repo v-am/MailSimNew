@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MailSim.Common.Contracts;
 using System.Dynamic;
 using System.Net;
+using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
@@ -106,8 +107,9 @@ namespace MailSim.ProvidersREST
 
             var items = msgs.Select(x => new MailItemProviderHTTP(x));
 
-            filter = filter.ToLower();
-            return items.Where(i => i.Subject.ToLower().Contains(filter));
+            filter = filter ?? string.Empty;
+
+            return items.Where(i => i.Subject.ContainsCaseInsensitive(filter));
         }
 
         private IEnumerable<MailItemProviderHTTP.Message> GetMessages(string filter, int count)
@@ -117,32 +119,6 @@ namespace MailSim.ProvidersREST
             return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
         }
 
-#if false
-        private IEnumerable<IMailItem> GetMailItems(int count)
-        {
-            var msgs = GetMessages(count);
-
-            return msgs.Select(x => new MailItemProviderHTTP(x));
-        }
-
-        private IEnumerable<MailItemProviderHTTP.Message> GetMessages(int count)
-        {
-            int pageSize = 0;
-
-            while (count > 0)
-            {
-                var uri = Uri + string.Format("/Messages?$skip={1}&$top={0}", count, pageSize);
-                var msgs = HttpUtil.GetItemsAsync<IEnumerable<MailItemProviderHTTP.Message>>(uri).Result;
-
-                foreach (var m in msgs)
-                {
-                    yield return m;
-                }
-
-                count -= msgs.Count();
-            }
-        }
-#endif
         public IMailFolder AddSubFolder(string name)
         {
             dynamic folderName = new ExpandoObject();

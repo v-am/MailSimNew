@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Outlook = Microsoft.Office.Interop.Outlook;
 using MailSim.Common.Contracts;
+using MailSim.Common;
 
 namespace MailSim.ProvidersOM
 {
@@ -109,16 +110,29 @@ namespace MailSim.ProvidersOM
         {
             get
             {
-                return GetMailItems();
+//                return GetMailItems();
+                return GetMailItems(string.Empty, int.MaxValue);
             }
         }
 
         public IEnumerable<IMailItem> GetMailItems(string filter, int count)
         {
-            // TODO: Implement this
-            yield break;
-        }
+            if (null == _folder.Items)
+            {
+                yield break;
+            }
 
+            filter = filter ?? string.Empty;
+
+            foreach (Outlook.MailItem item in _folder.Items)
+            {
+                if (item.Subject.ContainsCaseInsensitive(filter) && count-- > 0)
+                {
+                    yield return new MailItemProviderOM(item);
+                }
+            }
+        }
+#if false
         private IEnumerable<IMailItem> GetMailItems()
         {
             if (null == _folder.Items)
@@ -146,7 +160,7 @@ namespace MailSim.ProvidersOM
                 yield return new MailItemProviderOM(_folder.Items[i] as Outlook.MailItem);
             }
         }
-
+#endif
         internal Outlook.Folder Handle
         {
             get
