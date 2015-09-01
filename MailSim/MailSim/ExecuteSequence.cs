@@ -593,32 +593,29 @@ namespace MailSim
         /// <param name="type">type of recipients</param>
         /// <param name="recipientObject">recipient object from the Operation XML file</param>
         /// <returns>List of recipients if successful, null otherwise</returns>
-//        private List<string> GetRecipients(string name, Recipients recipientObjects)
         private List<string> GetRecipients(dynamic operation)
         {
-            List<string> recipients = new List<string>();
+            List<string> recipientNames = new List<string>();
             string name = operation.OperationName;
-            Recipients recipientObjects = operation.Recipients;
+
+            var specificRecipients = operation.Recipient;
+            var randomRecipients = operation.RandomRecipients;
 
             // determines the recipient
-            if (recipientObjects.Items == null)
+            if (specificRecipients == null && randomRecipients == null)
             {
                 Log.Out(Log.Severity.Error, name, "Recipients are not specified");
                 return null;
             }
 
-            if (recipientObjects.Items[0] is string)
+            if (specificRecipients != null)
             {
-                foreach (string recipient in recipientObjects.Items)
-                {
-                    recipients.Add(recipient);
-                }
+                recipientNames.AddRange(specificRecipients);
             }
-            // random recipients
-            else
+
+            if (randomRecipients != null)
             {
-                var randomRecpt = (RecipientsRandomRecipients)recipientObjects.Items[0];
-                int randomCount = Convert.ToInt32(randomRecpt.Value);
+                int randomCount = Convert.ToInt32(randomRecipients.Value);
 
                 // query the GAL
                 try
@@ -629,14 +626,14 @@ namespace MailSim
                     int userCountForRandom = int.Parse(operation.UserCountForRandomization);
 
                     // uses the global distribution list if not specified
-                    if (string.IsNullOrEmpty(randomRecpt.DistributionList))
+                    if (string.IsNullOrEmpty(randomRecipients.DistributionList))
                     {
                         galUsers = gal.GetUsers(null, userCountForRandom).ToList();
                     }
                     // queries the specific distribution list if specified
                     else
                     {
-                        galUsers = gal.GetDLMembers(randomRecpt.DistributionList, userCountForRandom).ToList();
+                        galUsers = gal.GetDLMembers(randomRecipients.DistributionList, userCountForRandom).ToList();
                     }
 
                     if (galUsers.Any() == false)
@@ -663,7 +660,7 @@ namespace MailSim
                     for (int count = 0; count < randomCount; count++)
                     {
                         int recipientNumber = randomNum.Next(0, galUsers.Count);
-                        recipients.Add(galUsers[recipientNumber]);
+                        recipientNames.Add(galUsers[recipientNumber]);
                         galUsers.RemoveAt(recipientNumber);
                     }
                 }
@@ -674,7 +671,7 @@ namespace MailSim
                 }
             }
 
-            return recipients;
+            return recipientNames;
         }
 
 
@@ -685,64 +682,56 @@ namespace MailSim
         /// <param name="name">name of the task</param>
         /// <param name="attachmentObject">attchment object from the Operation XML file</param>
         /// <returns>List of attachments if successful, empty list otherwise</returns>
-        private List<string> GetAttachments(string name, Attachments attachmentObjects)
+        private List<string> GetAttachments(dynamic operation)
         {
             List<string> attachments = new List<string>();
+            string name = operation.OperationName;
 
-            // just return if no attachment is specified
-            if (attachmentObjects == null || attachmentObjects.Items == null)
+            var specificAttachments = operation.Attachment;
+            var randomAttachments = operation.RandomAttachments;
+
+            if (specificAttachments != null)
             {
-                return attachments;
+                attachments.AddRange(specificAttachments);
             }
 
-            // determines the attachment element type
-            if (attachmentObjects.Items[0] is string)
+            if (randomAttachments != null)
             {
-                foreach (string attachment in attachmentObjects.Items)
-                {
-                    attachments.Add(attachment);
-                }
-            }
-            // Random attachments
-            else
-            {
-                var randomAtt = (AttachmentsRandomAttachments)attachmentObjects.Items[0];
-
-                int randCount = Convert.ToInt32(randomAtt.Count);
-
-                string dir = randomAtt.Value.Trim();
+                int randCount = Convert.ToInt32(randomAttachments.Count);
+                string dir = randomAttachments.Value.Trim();
 
                 // makes sure the folder exists
                 if (!Directory.Exists(dir))
                 {
                     Log.Out(Log.Severity.Error, name, "Directory {0} doesn't exist, skipping attachment",
-                        randomAtt.Value);
+                        randomAttachments.Value);
                     return attachments;
                 }
 
                 // queries all the files and randomly pick the attachment
-                string[] files = Directory.GetFiles(dir);
+                var files = Directory.GetFiles(dir).ToList();
                 int fileNumber;
 
                 // if Count is 0, it will attach a random number of attachments
                 if (randCount == 0)
                 {
-                    randCount = randomNum.Next(0, files.Length);
+                    randCount = randomNum.Next(0, files.Count);
                     Log.Out(Log.Severity.Info, name, "Randomly selecting {0} attachments", randCount);
                 }
 
                 // makes sure we don't pick more attachments than available
-                if (randCount > files.Length)
+                if (randCount > files.Count)
                 {
                     Log.Out(Log.Severity.Warning, name, "Only {0} files are available, adjusting attachment count from {1} to {0}",
-                        files.Length, randCount);
-                    randCount = files.Length;
+                        files.Count, randCount);
+                    randCount = files.Count;
                 }
 
                 for (int counter = 0; counter < randCount; counter++)
                 {
-                    fileNumber = randomNum.Next(0, files.Length);
+                    fileNumber = randomNum.Next(0, files.Count);
                     attachments.Add(files[fileNumber]);
+                    files.RemoveAt(fileNumber);
                 }
             }
 
@@ -806,12 +795,11 @@ namespace MailSim
 
         private bool AddRecipients(IMailItem mail, dynamic operation)
         {
-//            List<string> recipients = GetRecipients(operation.OperationName, operation.Recipients);
             var recipients = GetRecipients(operation);
 
             if (recipients == null)
             {
-                Log.Out(Log.Severity.Error, operation.OperationName, "Recipient is not specified, skipping operation");
+                Log.Out(Log.Severity.Error, operation.OperationName, "Recipients are not specified, skipping operation");
                 return false;
             }
 
@@ -827,7 +815,7 @@ namespace MailSim
 
         private void AddAttachments(IMailItem mail, dynamic operation)
         {
-            var attachments = GetAttachments(operation.OperationName, operation.Attachments);
+            var attachments = GetAttachments(operation);
 
             foreach (string attmt in attachments)
             {
@@ -900,7 +888,7 @@ namespace MailSim
 
                 if (mailCount == 0)
                 {
-                    Log.Out(Log.Severity.Error, Op.OperationName, "Skipping " + name);
+                    Log.Out(Log.Severity.Error, Op.OperationName, "Skipping " + Op.OperationName);
                     Iterations = 0;
                 }
                 else

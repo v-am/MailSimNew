@@ -97,30 +97,7 @@ public partial class MailSimOperationsEventMonitor {
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class Attachments {
-    
-    private object[] itemsField;
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlElementAttribute("Attachment", typeof(string))]
-    [System.Xml.Serialization.XmlElementAttribute("RandomAttachments", typeof(AttachmentsRandomAttachments))]
-    public object[] Items {
-        get {
-            return this.itemsField;
-        }
-        set {
-            this.itemsField = value;
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.6.81.0")]
-[System.SerializableAttribute()]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class AttachmentsRandomAttachments {
+public partial class RandomAttachments {
     
     private string countField;
     
@@ -154,30 +131,7 @@ public partial class AttachmentsRandomAttachments {
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-public partial class Recipients {
-    
-    private object[] itemsField;
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlElementAttribute("RandomRecipients", typeof(RecipientsRandomRecipients))]
-    [System.Xml.Serialization.XmlElementAttribute("Recipient", typeof(string))]
-    public object[] Items {
-        get {
-            return this.itemsField;
-        }
-        set {
-            this.itemsField = value;
-        }
-    }
-}
-
-/// <remarks/>
-[System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.6.81.0")]
-[System.SerializableAttribute()]
-[System.Diagnostics.DebuggerStepThroughAttribute()]
-[System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class RecipientsRandomRecipients {
+public partial class RandomRecipients {
     
     private string distributionListField;
     
@@ -465,13 +419,17 @@ public partial class MailSimOperationsMailForward {
     
     private string folderField;
     
-    private Recipients recipientsField;
+    private string[] recipientField;
+    
+    private RandomRecipients randomRecipientsField;
     
     private string mailSubjectToForwardField;
     
     private string forwardBodyField;
     
-    private Attachments attachmentsField;
+    private string[] attachmentField;
+    
+    private RandomAttachments randomAttachmentsField;
     
     private string operationNameField;
     
@@ -499,12 +457,23 @@ public partial class MailSimOperationsMailForward {
     }
     
     /// <remarks/>
-    public Recipients Recipients {
+    [System.Xml.Serialization.XmlElementAttribute("Recipient")]
+    public string[] Recipient {
         get {
-            return this.recipientsField;
+            return this.recipientField;
         }
         set {
-            this.recipientsField = value;
+            this.recipientField = value;
+        }
+    }
+    
+    /// <remarks/>
+    public RandomRecipients RandomRecipients {
+        get {
+            return this.randomRecipientsField;
+        }
+        set {
+            this.randomRecipientsField = value;
         }
     }
     
@@ -529,12 +498,23 @@ public partial class MailSimOperationsMailForward {
     }
     
     /// <remarks/>
-    public Attachments Attachments {
+    [System.Xml.Serialization.XmlElementAttribute("Attachment")]
+    public string[] Attachment {
         get {
-            return this.attachmentsField;
+            return this.attachmentField;
         }
         set {
-            this.attachmentsField = value;
+            this.attachmentField = value;
+        }
+    }
+    
+    /// <remarks/>
+    public RandomAttachments RandomAttachments {
+        get {
+            return this.randomAttachmentsField;
+        }
+        set {
+            this.randomAttachmentsField = value;
         }
     }
     
@@ -712,7 +692,9 @@ public partial class MailSimOperationsMailReply {
     
     private string replyBodyField;
     
-    private Attachments attachmentsField;
+    private string[] attachmentField;
+    
+    private RandomAttachments randomAttachmentsField;
     
     private string operationNameField;
     
@@ -762,12 +744,23 @@ public partial class MailSimOperationsMailReply {
     }
     
     /// <remarks/>
-    public Attachments Attachments {
+    [System.Xml.Serialization.XmlElementAttribute("Attachment")]
+    public string[] Attachment {
         get {
-            return this.attachmentsField;
+            return this.attachmentField;
         }
         set {
-            this.attachmentsField = value;
+            this.attachmentField = value;
+        }
+    }
+    
+    /// <remarks/>
+    public RandomAttachments RandomAttachments {
+        get {
+            return this.randomAttachmentsField;
+        }
+        set {
+            this.randomAttachmentsField = value;
         }
     }
     
@@ -848,13 +841,17 @@ public partial class MailSimOperationsMailReply {
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
 public partial class MailSimOperationsMailSend {
     
-    private Recipients recipientsField;
+    private string[] recipientField;
+    
+    private RandomRecipients randomRecipientsField;
     
     private string subjectField;
     
     private string bodyField;
     
-    private Attachments attachmentsField;
+    private string[] attachmentField;
+    
+    private RandomAttachments randomAttachmentsField;
     
     private string operationNameField;
     
@@ -862,13 +859,30 @@ public partial class MailSimOperationsMailSend {
     
     private string sleepField;
     
+    private string userCountForRandomizationField;
+    
+    public MailSimOperationsMailSend() {
+        this.userCountForRandomizationField = "100";
+    }
+    
     /// <remarks/>
-    public Recipients Recipients {
+    [System.Xml.Serialization.XmlElementAttribute("Recipient")]
+    public string[] Recipient {
         get {
-            return this.recipientsField;
+            return this.recipientField;
         }
         set {
-            this.recipientsField = value;
+            this.recipientField = value;
+        }
+    }
+    
+    /// <remarks/>
+    public RandomRecipients RandomRecipients {
+        get {
+            return this.randomRecipientsField;
+        }
+        set {
+            this.randomRecipientsField = value;
         }
     }
     
@@ -893,12 +907,23 @@ public partial class MailSimOperationsMailSend {
     }
     
     /// <remarks/>
-    public Attachments Attachments {
+    [System.Xml.Serialization.XmlElementAttribute("Attachment")]
+    public string[] Attachment {
         get {
-            return this.attachmentsField;
+            return this.attachmentField;
         }
         set {
-            this.attachmentsField = value;
+            this.attachmentField = value;
+        }
+    }
+    
+    /// <remarks/>
+    public RandomAttachments RandomAttachments {
+        get {
+            return this.randomAttachmentsField;
+        }
+        set {
+            this.randomAttachmentsField = value;
         }
     }
     
@@ -932,6 +957,18 @@ public partial class MailSimOperationsMailSend {
         }
         set {
             this.sleepField = value;
+        }
+    }
+    
+    /// <remarks/>
+    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
+    [System.ComponentModel.DefaultValueAttribute("100")]
+    public string UserCountForRandomization {
+        get {
+            return this.userCountForRandomizationField;
+        }
+        set {
+            this.userCountForRandomizationField = value;
         }
     }
 }

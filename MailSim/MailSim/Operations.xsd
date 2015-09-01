@@ -2,10 +2,7 @@
 
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
            xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <!--  
-           xmlns:common="http://tempuri.org/CommonTypes.xsd">
-  <xs:import  schemaLocation="CommonTypes.xsd" namespace="http://tempuri.org/CommonTypes.xsd"/>
--->
+
   <xs:element name="MailSimOperations">
     <xs:complexType>
       <xs:sequence>
@@ -13,11 +10,14 @@
           <xs:element name="MailSend">
             <xs:complexType>
               <xs:sequence>
-                <xs:element name="Recipients" type="Recipients"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" name="Recipient" type="xs:string" />
+                <xs:element minOccurs="0" name="RandomRecipients" type="RandomRecipients" />
                 <xs:element minOccurs="0" name="Subject" type="xs:string" />
                 <xs:element minOccurs="0" name="Body" type="xs:string" />
-                <!-- Specify either random attachments or specific attachment(s) -->
-                <xs:element minOccurs="0" name="Attachments" type="Attachments"/>
+                <!-- Use absolute path for the attachement.-->
+                <xs:element minOccurs="0" maxOccurs="unbounded" name="Attachment" type="xs:string" />
+                <!-- Specify random attachments -->
+                <xs:element minOccurs="0" name="RandomAttachments" type="RandomAttachments"/>
               </xs:sequence>
               <!-- Unique name for the operation, this will be used as a reference for the sequence file-->
               <xs:attribute name="OperationName" type="xs:string" use="required" />
@@ -25,6 +25,7 @@
               <xs:attribute name="Count" type="xs:integer" use="optional" />
               <!-- Sleep between each action -->
               <xs:attribute name="Sleep" type="xs:integer" use="optional" />
+              <xs:attribute name="UserCountForRandomization" type="xs:integer" use="optional" default="100"/>
             </xs:complexType>
           </xs:element>
 
@@ -76,8 +77,10 @@
                 <!-- The tool finds all emails containing the MailSubjectToReply subject to reply, subject is case sensitive, if specified-->
                 <xs:element minOccurs="0" name="MailSubjectToReply" type="xs:string" />
                 <xs:element minOccurs="0" name="ReplyBody" type="xs:string" />
-                <!-- Specify either random attachments or specific attachment(s) -->
-                <xs:element name="Attachments" type="Attachments"/>
+                <!-- Use absolute path for the attachement.-->
+                <xs:element minOccurs="0" maxOccurs="unbounded" name="Attachment" type="xs:string" />
+                <!-- Specify random attachments -->
+                <xs:element minOccurs="0" name="RandomAttachments" type="RandomAttachments"/>
               </xs:sequence>
               <!-- Unique name for the operation, this will be used as a reference for the sequence file-->
               <xs:attribute name="OperationName" type="xs:string" use="required" />
@@ -109,12 +112,15 @@
                 http://msdn.microsoft.com/en-us/library/office/microsoft.office.interop.outlook.oldefaultfolders%28v=office.15%29.aspx-->
                 <xs:element name="Folder" type="xs:string" />
                 <!-- Specify either random recipients or specific recipient(s)-->
-                <xs:element name="Recipients" type="Recipients"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" name="Recipient" type="xs:string" />
+                <xs:element minOccurs="0" name="RandomRecipients" type="RandomRecipients" />
                 <!-- Case sensitive subject -->
                 <xs:element minOccurs="0" name="MailSubjectToForward" type="xs:string" />
                 <xs:element minOccurs="0" name="ForwardBody" type="xs:string" />
-                <!-- Specify either random attachments or specific attachment(s) -->
-                <xs:element name="Attachments" type="Attachments"/>
+                <!-- Use absolute path for the attachement.-->
+                <xs:element minOccurs="0" maxOccurs="unbounded" name="Attachment" type="xs:string" />
+                <!-- Specify random attachments -->
+                <xs:element minOccurs="0" name="RandomAttachments" type="RandomAttachments"/>
               </xs:sequence>
               <!-- Unique name for the operation, this will be used as a reference for the sequence file-->
               <xs:attribute name="OperationName" type="xs:string" use="required" />
@@ -238,43 +244,28 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
-  <xs:complexType name="Recipients">
-    <xs:choice>
-      <xs:element minOccurs="0" maxOccurs="unbounded" name="Recipient" type="xs:string" />
-      <!-- Random recipients will be queried from the address book. If the value is 0, it will send
+
+  <!-- Random recipients will be queried from the address book. If the value is 0, it will send
                   to random number of recipients. Otherwise, it will send email to the specified number
                   of random recipients.-->
-      <xs:element minOccurs="0" maxOccurs="1" name="RandomRecipients">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="xs:integer">
-              <!-- Specify whether to pick random users from a specific Distribution List. It'll 
-                          pick from all users if DistributionList is "".-->
-              <xs:attribute name="DistributionList" type="xs:string" use="required" />
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
-    </xs:choice>
+  <xs:complexType name="RandomRecipients">
+    <xs:simpleContent>
+      <xs:extension base="xs:integer">
+        <!-- Specify whether to pick random users from a specific Distribution List. It'll 
+                    pick from all users if DistributionList is "".-->
+        <xs:attribute name="DistributionList" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="Attachments">
-    <xs:choice>
-      <!-- Use absolute path for the attachement.-->
-      <xs:element minOccurs="0" maxOccurs="unbounded" name="Attachment" type="xs:string" />
-      <!-- Specify the file path for the random attachments-->
-      <xs:element minOccurs="0" name="RandomAttachments">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="xs:string">
-              <!-- If Count is a non-zero value, it will attach the specified number of random attachments.
-                            If Count is 0, it will attach a random number of attachments. -->
-              <xs:attribute name="Count" type="xs:integer"  use="optional"/>
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
-    </xs:choice>
+  <!-- Specify the file path for the random attachments-->
+  <xs:complexType name="RandomAttachments">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <!-- If Count is a non-zero value, it will attach the specified number of random attachments.
+                      If Count is 0, it will attach a random number of attachments. -->
+        <xs:attribute name="Count" type="xs:integer" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 </xs:schema>
