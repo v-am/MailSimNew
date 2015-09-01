@@ -172,7 +172,8 @@ namespace MailSim
 
             try
             {
-                operation = operations.Items.SingleOrDefault(x => GetOperationName(x) == taskName);
+                operation = operations.Items
+                    .SingleOrDefault(x => string.Equals(GetOperationName(x), taskName, StringComparison.OrdinalIgnoreCase));
             }
             catch (InvalidOperationException)
             {
@@ -238,7 +239,7 @@ namespace MailSim
                 }
                 catch (Exception ex)
                 {
-                    Log.Out(Log.Severity.Error, operation.OperationName, "Exception encountered\n" + ex);
+                    Log.Out(Log.Severity.Error, operation.OperationName, "Exception encountered\n{0}", ex);
                     return false;
                 }
 
@@ -269,7 +270,7 @@ namespace MailSim
             return parsedOp.Iterate((indexToDelete, mails) =>
             {
                 var item = mails[indexToDelete];
-                Log.Out(Log.Severity.Info, operation.OperationName, "Deleting email with subject: {0}", item.Subject);
+                Log.Out(Log.Severity.Info, operation.OperationName, "Deleting email with subject: \"{0}\"", item.Subject);
                 
                 item.Delete();
                 mails.RemoveAt(indexToDelete);
@@ -595,11 +596,10 @@ namespace MailSim
         /// <returns>List of recipients if successful, null otherwise</returns>
         private List<string> GetRecipients(dynamic operation)
         {
-            List<string> recipientNames = new List<string>();
             string name = operation.OperationName;
 
-            var specificRecipients = operation.Recipient;
-            var randomRecipients = operation.RandomRecipients;
+            string[] specificRecipients = operation.Recipient;
+            RandomRecipients randomRecipients = operation.RandomRecipients;
 
             // determines the recipient
             if (specificRecipients == null && randomRecipients == null)
@@ -607,6 +607,8 @@ namespace MailSim
                 Log.Out(Log.Severity.Error, name, "Recipients are not specified");
                 return null;
             }
+
+            List<string> recipientNames = new List<string>();
 
             if (specificRecipients != null)
             {
@@ -687,8 +689,8 @@ namespace MailSim
             List<string> attachments = new List<string>();
             string name = operation.OperationName;
 
-            var specificAttachments = operation.Attachment;
-            var randomAttachments = operation.RandomAttachments;
+            string[] specificAttachments = operation.Attachment;
+            RandomAttachments randomAttachments = operation.RandomAttachments;
 
             if (specificAttachments != null)
             {
@@ -764,7 +766,7 @@ namespace MailSim
 
             if (mails.Any() == false)
             {
-                Log.Out(Log.Severity.Error, op.OperationName, "No items with subject {0} in folder {1}", subject, folder);
+                Log.Out(Log.Severity.Error, op.OperationName, "No items with subject \"{0}\" in folder {1}", subject, folder);
                 return mails;
             }
 
@@ -900,7 +902,7 @@ namespace MailSim
                     if (IsRandom)
                     {
                         Iterations = _random.Next(1, mailCount + 1);
-                        Log.Out(Log.Severity.Info, Op.OperationName, "Randomly applying {0} to {1} emails", name, Iterations);
+                        Log.Out(Log.Severity.Info, Op.OperationName, "Randomly applying {0} to {1} emails", Op.OperationName, Iterations);
                     }
                     // we need to make sure we are not deleting more than what we have in the mailbox
                     else if (Iterations > mailCount)

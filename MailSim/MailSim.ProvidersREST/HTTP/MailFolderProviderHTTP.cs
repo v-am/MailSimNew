@@ -114,7 +114,16 @@ namespace MailSim.ProvidersREST
 
         private IEnumerable<MailItemProviderHTTP.Message> GetMessages(string filter, int count)
         {
-            string uri = Uri + string.Format("/Messages?$search=\"{1}\"&$top={0}", count, filter);
+            string uri;
+
+            if (string.IsNullOrEmpty(filter))
+            {
+                uri = Uri + string.Format("/Messages?&$top={0}", count);
+            }
+            else
+            {
+                uri = Uri + string.Format("/Messages?$search=\"{1}\"&$top={0}", count, filter);
+            }
 
             return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
         }

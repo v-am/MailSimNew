@@ -24,7 +24,7 @@ using System.Xml.Serialization;
 [System.Xml.Serialization.XmlRootAttribute(Namespace="", IsNullable=false)]
 public partial class MailSimOperations {
     
-    private object[] itemsField;
+    private BaseMailOperation[] itemsField;
     
     /// <remarks/>
     [System.Xml.Serialization.XmlElementAttribute("EventMonitor", typeof(MailSimOperationsEventMonitor))]
@@ -35,7 +35,7 @@ public partial class MailSimOperations {
     [System.Xml.Serialization.XmlElementAttribute("MailMove", typeof(MailSimOperationsMailMove))]
     [System.Xml.Serialization.XmlElementAttribute("MailReply", typeof(MailSimOperationsMailReply))]
     [System.Xml.Serialization.XmlElementAttribute("MailSend", typeof(MailSimOperationsMailSend))]
-    public object[] Items {
+    public BaseMailOperation[] Items {
         get {
             return this.itemsField;
         }
@@ -51,13 +51,9 @@ public partial class MailSimOperations {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsEventMonitor {
+public partial class MailSimOperationsEventMonitor : BaseMailOperation {
     
     private string folderField;
-    
-    private string operationNameField;
-    
-    private string sleepField;
     
     /// <remarks/>
     public string Folder {
@@ -68,6 +64,18 @@ public partial class MailSimOperationsEventMonitor {
             this.folderField = value;
         }
     }
+}
+
+/// <remarks/>
+[System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.6.81.0")]
+[System.SerializableAttribute()]
+[System.Diagnostics.DebuggerStepThroughAttribute()]
+[System.ComponentModel.DesignerCategoryAttribute("code")]
+public partial class BaseMailOperation {
+    
+    private string operationNameField;
+    
+    private string sleepField;
     
     /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -137,8 +145,13 @@ public partial class RandomRecipients {
     
     private string valueField;
     
+    public RandomRecipients() {
+        this.distributionListField = "";
+    }
+    
     /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute()]
+    [System.ComponentModel.DefaultValueAttribute("")]
     public string DistributionList {
         get {
             return this.distributionListField;
@@ -166,17 +179,13 @@ public partial class RandomRecipients {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsFolderCreate {
+public partial class MailSimOperationsFolderCreate : BaseMailOperation {
     
     private string folderPathField;
     
     private string folderNameField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     /// <remarks/>
     public string FolderPath {
@@ -199,17 +208,6 @@ public partial class MailSimOperationsFolderCreate {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -217,17 +215,6 @@ public partial class MailSimOperationsFolderCreate {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
 }
@@ -238,17 +225,13 @@ public partial class MailSimOperationsFolderCreate {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsFolderDelete {
+public partial class MailSimOperationsFolderDelete : BaseMailOperation {
     
     private string folderPathField;
     
     private string folderNameField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     /// <remarks/>
     public string FolderPath {
@@ -271,17 +254,6 @@ public partial class MailSimOperationsFolderDelete {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -289,17 +261,6 @@ public partial class MailSimOperationsFolderDelete {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
 }
@@ -310,17 +271,13 @@ public partial class MailSimOperationsFolderDelete {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsMailDelete {
+public partial class MailSimOperationsMailDelete : BaseMailOperation {
     
     private string folderField;
     
     private string subjectField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     private string mailCountForRandomizationField;
     
@@ -352,17 +309,6 @@ public partial class MailSimOperationsMailDelete {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -370,17 +316,6 @@ public partial class MailSimOperationsMailDelete {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
     
@@ -415,7 +350,7 @@ public partial class MailSimOperationsMailDelete {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsMailForward {
+public partial class MailSimOperationsMailForward : BaseMailOperation {
     
     private string folderField;
     
@@ -431,11 +366,7 @@ public partial class MailSimOperationsMailForward {
     
     private RandomAttachments randomAttachmentsField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     private string mailCountForRandomizationField;
     
@@ -519,17 +450,6 @@ public partial class MailSimOperationsMailForward {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -537,17 +457,6 @@ public partial class MailSimOperationsMailForward {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
     
@@ -582,7 +491,7 @@ public partial class MailSimOperationsMailForward {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsMailMove {
+public partial class MailSimOperationsMailMove : BaseMailOperation {
     
     private string sourceFolderField;
     
@@ -590,11 +499,7 @@ public partial class MailSimOperationsMailMove {
     
     private string subjectField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     private string mailCountForRandomizationField;
     
@@ -633,17 +538,6 @@ public partial class MailSimOperationsMailMove {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -651,17 +545,6 @@ public partial class MailSimOperationsMailMove {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
     
@@ -684,7 +567,7 @@ public partial class MailSimOperationsMailMove {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsMailReply {
+public partial class MailSimOperationsMailReply : BaseMailOperation {
     
     private string folderField;
     
@@ -696,13 +579,9 @@ public partial class MailSimOperationsMailReply {
     
     private RandomAttachments randomAttachmentsField;
     
-    private string operationNameField;
-    
     private bool replyAllField;
     
     private string countField;
-    
-    private string sleepField;
     
     private string mailCountForRandomizationField;
     
@@ -766,17 +645,6 @@ public partial class MailSimOperationsMailReply {
     
     /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
     public bool ReplyAll {
         get {
             return this.replyAllField;
@@ -794,17 +662,6 @@ public partial class MailSimOperationsMailReply {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
     
@@ -839,7 +696,7 @@ public partial class MailSimOperationsMailReply {
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-public partial class MailSimOperationsMailSend {
+public partial class MailSimOperationsMailSend : BaseMailOperation {
     
     private string[] recipientField;
     
@@ -853,11 +710,7 @@ public partial class MailSimOperationsMailSend {
     
     private RandomAttachments randomAttachmentsField;
     
-    private string operationNameField;
-    
     private string countField;
-    
-    private string sleepField;
     
     private string userCountForRandomizationField;
     
@@ -928,17 +781,6 @@ public partial class MailSimOperationsMailSend {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute()]
-    public string OperationName {
-        get {
-            return this.operationNameField;
-        }
-        set {
-            this.operationNameField = value;
-        }
-    }
-    
-    /// <remarks/>
     [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
     public string Count {
         get {
@@ -946,17 +788,6 @@ public partial class MailSimOperationsMailSend {
         }
         set {
             this.countField = value;
-        }
-    }
-    
-    /// <remarks/>
-    [System.Xml.Serialization.XmlAttributeAttribute(DataType="integer")]
-    public string Sleep {
-        get {
-            return this.sleepField;
-        }
-        set {
-            this.sleepField = value;
         }
     }
     

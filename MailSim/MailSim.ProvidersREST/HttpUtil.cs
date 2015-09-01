@@ -106,10 +106,27 @@ namespace MailSim.ProvidersREST
                 response = await client.SendAsync(request);
             }
 
-            response.EnsureSuccessStatusCode();
             string jsonResponse = await response.Content.ReadAsStringAsync();
 
-            return JsonConvert.DeserializeObject<TResult>(jsonResponse);
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonConvert.DeserializeObject<TResult>(jsonResponse);
+            }
+            else
+            {
+                var errorDetail = JsonConvert.DeserializeObject<ODataError>(jsonResponse);
+                throw new System.Exception(errorDetail.error.message);
+            }
+        }
+
+        private class ODataError
+        {
+            public class Error
+            {
+                public string code { get; set; }
+                public string message { get; set; }
+            }
+            public Error error { get; set; }
         }
 
         internal static async Task<TResult> DoHttp<TBody, TResult>(string methodName, string uri, TBody body)

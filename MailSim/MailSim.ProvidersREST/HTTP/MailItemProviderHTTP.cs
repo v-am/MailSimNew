@@ -178,7 +178,6 @@ namespace MailSim.ProvidersREST
             public ItemBody Body { get; set; }
             public ICollection<Recipient> ToRecipients { get; set; }
             public Sender Sender { get; set; }
-//            public string ParentFolderId { get; set; }
             public string Importance { get; set; }
         }
 
