@@ -253,7 +253,7 @@ namespace MailSim.ProvidersOM
             }
             catch (Exception ex)
             {
-                Log.Out(Log.Severity.Error, "", "Unable to change registry, you may want to run this as Administrator\n" + ex.ToString());
+                Log.Out(Log.Severity.Error, "", "Unable to change registry, you may want to run this as Administrator\n{0}", ex);
             }
         }
     }

@@ -554,7 +554,7 @@ namespace MailSim
             }
             catch (Exception ex)
             {
-                Log.Out(Log.Severity.Error, operation, "RegisterFolderEvent: Exception encountered\n" + ex.ToString());
+                Log.Out(Log.Severity.Error, operation, "RegisterFolderEvent: Exception encountered\n{0}", ex);
                 return false;
             }
             return true;
@@ -668,7 +668,7 @@ namespace MailSim
                 }
                 catch (Exception ex)
                 {
-                    Log.Out(Log.Severity.Error, name, "Unable to get users from GAL to select random users\n" + ex.ToString());
+                    Log.Out(Log.Severity.Error, name, "Unable to get users from GAL to select random users\n{0}", ex);
                     return null;
                 }
             }

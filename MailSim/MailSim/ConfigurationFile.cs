@@ -62,7 +62,7 @@ namespace MailSim
             }
             catch (Exception ex)
             {
-                Log.Out(Log.Severity.Error, XMLProcessing, "Run exception\n" + ex.ToString());
+                Log.Out(Log.Severity.Error, XMLProcessing, "Run exception\n{0}", ex);
                 return null;
             }
 
@@ -113,7 +113,7 @@ namespace MailSim
             }
             catch (Exception ex)
             {
-                Log.Out(Log.Severity.Error, XMLProcessing, "LoadOperationFile exception\n" + ex.ToString());
+                Log.Out(Log.Severity.Error, XMLProcessing, "LoadOperationFile exception\n{0}", ex);
                 return null;
             }
 
@@ -157,7 +157,7 @@ namespace MailSim
             catch (Exception ex)
             {
                 Log.Out(Log.Severity.Error, XMLProcessing,
-                    "{0} schema validation exception encountered\n" + ex.ToString(), xmlFile);
+                    "{0} schema validation exception encountered\n{1}", xmlFile, ex);
                 return null;
             }
 

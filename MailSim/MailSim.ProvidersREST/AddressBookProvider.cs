@@ -33,15 +33,26 @@ namespace MailSim.ProvidersREST
 
         private IEnumerable<string> EnumerateUsers(string match, int count)
         {
-            var pagedUsers = _adClient.Users
-                .Where(
-                    x => x.UserPrincipalName.StartsWith(match) ||
-                    x.DisplayName.StartsWith(match) ||
-                    x.GivenName.StartsWith(match) ||
-                    x.Surname.StartsWith(match)
-                )
-                .ExecuteAsync()
-                .Result;
+            IPagedCollection<IUser> pagedUsers;
+
+            if (string.IsNullOrEmpty(match))
+            {
+                pagedUsers = _adClient.Users
+                     .ExecuteAsync()
+                    .Result;
+            }
+            else
+            {
+                pagedUsers = _adClient.Users
+                    .Where(x =>
+                        x.UserPrincipalName.StartsWith(match) ||
+                        x.DisplayName.StartsWith(match) ||
+                        x.GivenName.StartsWith(match) ||
+                        x.Surname.StartsWith(match)
+                    )
+                    .ExecuteAsync()
+                    .Result;
+            }
 
             var users = GetFilteredItems(pagedUsers, count, (u) => true);
 
@@ -55,11 +66,23 @@ namespace MailSim.ProvidersREST
         /// <returns>List of SMTP addresses of DL members or null if DL is not found. Nesting DLs are not expanded. </returns>
         public IEnumerable<string> GetDLMembers(string dLName, int count)
         {
-            var groups = _adClient.Groups
-                .Where(g => g.Mail.StartsWith(dLName))
-                .ExecuteAsync()
-                .Result
-                .CurrentPage;   // assume we are going to use the first matching group
+            IReadOnlyList<IGroup> groups;
+
+            if (string.IsNullOrEmpty(dLName))
+            {
+                groups = _adClient.Groups
+                    .ExecuteAsync()
+                    .Result
+                    .CurrentPage;   // assume we are going to use the first matching group
+            }
+            else
+            {
+                groups = _adClient.Groups
+                    .Where(g => g.Mail.StartsWith(dLName))
+                    .ExecuteAsync()
+                    .Result
+                    .CurrentPage;   // assume we are going to use the first matching group
+            }
 
             if (groups.Any() == false)
             {

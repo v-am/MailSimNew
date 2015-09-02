@@ -94,7 +94,7 @@ namespace MailSim
             }
             catch (Exception ex)
             {
-                Log.Out(Log.Severity.Error, Process.GetCurrentProcess().ProcessName, "Error encountered\n" + ex.ToString());
+                Log.Out(Log.Severity.Error, Process.GetCurrentProcess().ProcessName, "Error encountered\n{0}", ex);
             }
         }
 

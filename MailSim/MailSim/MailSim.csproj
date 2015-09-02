@@ -61,9 +61,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="CommonTypes.xsd">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="Operations.xsd">
       <SubType>Designer</SubType>
     </None>

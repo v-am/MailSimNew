@@ -27,10 +27,10 @@ namespace MailSim.ProvidersREST
 
         internal static IEnumerable<T> EnumerateCollection<T>(string uri, int count)
         {
-#if true
+#if false
             IEnumerable<T> items = Enumerable.Empty<T>();
 
-            while (uri != null)
+            while (count > 0 && uri != null)
             {
                 var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
 
