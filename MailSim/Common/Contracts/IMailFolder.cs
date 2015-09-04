@@ -15,6 +15,7 @@ namespace MailSim.Common.Contracts
         /// <summary>
         /// Folder Path of this folder
         /// </summary>
+
         string FolderPath { get; }
         /// <summary>
         /// Collection of MailItems in current folder
@@ -22,6 +23,12 @@ namespace MailSim.Common.Contracts
         /// <returns>IEnumerable of IMailItem</returns>
         IEnumerable<IMailItem> MailItems { get; }
 
+        /// <summary>
+        /// Get collection of MailItems in current folder
+        /// <param name="filter"> string to match in mail item subject or null to perform no matching</param>
+        /// <param name="count"> maximum number of items to fetch from the folder </param>
+        /// </summary>
+        /// <returns>IEnumerable of IMailItem</returns>
         IEnumerable<IMailItem> GetMailItems(string filter, int count);
 
         /// <summary>
@@ -29,29 +36,35 @@ namespace MailSim.Common.Contracts
         /// </summary>
         /// <returns>IEnumerable of IMailFolder</returns>
         IEnumerable<IMailFolder> SubFolders { get; }
+
         /// <summary>
         /// Registers event handler for ItemAdd event for new mail in the folder (i.e. new MailSim.OL.MailItem).
         /// </summary>
         /// <param name="callback">public static void FolderEvent(MailItem mail)</param>
         void RegisterItemAddEventHandler(Action<IMailItem> callback);
+
         /// <summary>
         /// Unregisters event handler previously registered with RegisterItemAddEventHandler
         /// </summary>
         void UnRegisterItemAddEventHandler();
+        
         /// <summary>
         /// Number of mail items in the current folder
         /// </summary>
         int MailItemsCount { get; }
+        
         /// <summary>
         /// Number of subfolders in the current folder
         /// </summary>
         int SubFoldersCount { get; }
+        
         /// <summary>
         /// Adds folder as a subfolder of current folder
         /// </summary>
         /// <param name="name">Nam of new folder</param>
         /// <returns></returns>
         IMailFolder AddSubFolder(string name);
+        
         /// <summary>
         /// Deletes current folder
         /// </summary>

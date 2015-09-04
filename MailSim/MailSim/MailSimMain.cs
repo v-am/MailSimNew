@@ -12,11 +12,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using MailSim.Common;
+using System.Linq;
 
 namespace MailSim
 {
     class MailSimMain
     {
+        private const string OptionsFile = "options.config";
+        private const string OptionsSchema = "options.xsd";
+
         /// <summary>
         /// Main program
         /// </summary>
@@ -24,46 +28,58 @@ namespace MailSim
         static void Main(string[] args)
         {
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
-            
-            if (args.Length > 0)
-            {
-                if (args[0] == "/t")
-                {
-                    MailSimTest testClass = new MailSimTest();
-                    
-                    try
-                    {
-                        testClass.Execute(args);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Out(Log.Severity.Error, string.Empty, "Exception: {0}", ex);
-                    }
 
-                    Log.Out(Log.Severity.Info, "", "Press any key to quit");
-                    Console.Read();
-                    return;
-                }
+            var options = ConfigurationFile.LoadXml<MailSimOptions>(OptionsFile, OptionsSchema);
+
+            if (options == null || ProcessArgs(args, options) == false)
+            {
+                Log.Out(Log.Severity.Info, "", "Press any key to quit");
+                Console.Read();
+                return;
             }
 
-            if (args.Length != 1)
+            ProcessSequense(args, options);
+        }
+
+        private static bool ProcessArgs(string[] args, MailSimOptions options)
+        {
+            if (args.Length == 0)
+            {
+                PrintUsage();
+                return false;
+            }
+
+            if (args[0] == "/t")
+            {
+                try
+                {
+                    MailSimTest testClass = new MailSimTest(options, args.Length > 1 ? args[1] : null);
+                    testClass.Execute();
+                }
+                catch (Exception ex)
+                {
+                    Log.Out(Log.Severity.Error, string.Empty, "Exception: {0}", ex);
+                }
+
+                return false;
+            }
+            else if (args.Length != 1)
             {
                 Log.Out(Log.Severity.Error, "", "Invalid parameter!");
                 PrintUsage();
-                return;
+                return false;
             }
-
-            if (!File.Exists(args[0]))
+            else if (!File.Exists(args[0]))
             {
                 Log.Out(Log.Severity.Error, "", "Invalid parameter, file does not exist");
                 PrintUsage();
-                return;
+                return false;
             }
 
-            ProcessArgs(args);
+            return true;
         }
 
-        static void OnProcessExit(object sender, EventArgs e)
+        private static void OnProcessExit(object sender, EventArgs e)
         {
             Log.CloseLogFileElement();
         }
@@ -72,7 +88,7 @@ namespace MailSim
         /// Starting main execution engine
         /// </summary>
         /// <param name="args"></param>
-        private static void ProcessArgs(string[] args)
+        private static void ProcessSequense(string[] args, MailSimOptions options)
         {
             try
             {
@@ -85,7 +101,7 @@ namespace MailSim
                     return;
                 }
 
-                ExecuteSequence exeSeq = new ExecuteSequence(seq);
+                ExecuteSequence exeSeq = new ExecuteSequence(seq, options);
 
                 // initializes logging
                 Log.LogFileLocation(seq.LogFileLocation);
@@ -95,6 +111,8 @@ namespace MailSim
             catch (Exception ex)
             {
                 Log.Out(Log.Severity.Error, Process.GetCurrentProcess().ProcessName, "Error encountered\n{0}", ex);
+                Log.Out(Log.Severity.Info, "", "Press any key to quit");
+                Console.Read();
             }
         }
 

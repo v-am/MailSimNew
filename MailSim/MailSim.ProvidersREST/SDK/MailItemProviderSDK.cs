@@ -59,17 +59,6 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private void SetAndUpdate(Action<IMessage> action)
-        {
-            IMessage message = null;
-            
-            message = _outlookClient.Me.Messages[_message.Id].ExecuteAsync().Result;
-
-            action(message);
-            
-            message.UpdateAsync().Wait();
-        }
-
         public void AddRecipient(string recipient)
         {
             SetAndUpdate((message) => message.ToRecipients.Add(new Recipient
@@ -103,9 +92,10 @@ namespace MailSim.ProvidersREST
             }
         }
 
+        // TODO: Figure out how to implement this
         public void AddAttachment(IMailItem mailItem)
         {
-#if false   // TODO: This doesn't work
+#if false
             var itemProvider = mailItem as MailItemProvider;
 
             var msgFetcher = _outlookClient.Me.Messages.GetById(_message.Id);
@@ -119,22 +109,6 @@ namespace MailSim.ProvidersREST
 
            Util.Synchronize(async () => await msgFetcher.Attachments.AddAttachmentAsync(itemAttachment));
 #endif
-        }
-
-        internal Item Handle
-        {
-            get
-            {
-                return _message as Item;
-            }
-        }
-        
-        private IMessageFetcher Message
-        {
-            get
-            {
-                return _outlookClient.Me.Messages[_message.Id];
-            }
         }
 
         // Create a reply message
@@ -187,6 +161,33 @@ namespace MailSim.ProvidersREST
         {
             // TODO: Implement this
             return true;
+        }
+
+        internal Item Handle
+        {
+            get
+            {
+                return _message as Item;
+            }
+        }
+
+        private IMessageFetcher Message
+        {
+            get
+            {
+                return _outlookClient.Me.Messages[_message.Id];
+            }
+        }
+
+        private void SetAndUpdate(Action<IMessage> action)
+        {
+            IMessage message = null;
+
+            message = _outlookClient.Me.Messages[_message.Id].ExecuteAsync().Result;
+
+            action(message);
+
+            message.UpdateAsync().Wait();
         }
     }
 }

@@ -12,6 +12,7 @@ namespace MailSim.ProvidersREST
 {
     class MailFolderProviderHTTP : IMailFolder
     {
+        private const int PageSize = 100;   // the page to use for $top argument
         private readonly Folder _folder;
 //        private string _subscriptionId;
 
@@ -38,14 +39,6 @@ namespace MailSim.ProvidersREST
                 return Name;    // TODO: is it the right thing to do?
             }
         }
-
-        internal string Handle
-        {
-            get
-            {
-                return _folder.Id;
-            }
-        }
  
         public int MailItemsCount
         {
@@ -53,11 +46,6 @@ namespace MailSim.ProvidersREST
             {
                 return GetMailCount();
             }
-        }
-
-        private int GetMailCount()
-        {
-            return HttpUtil.GetItemAsync<int>(Uri + "/Messages/$count").Result;
         }
 
         public int SubFoldersCount
@@ -68,15 +56,11 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private int GetChildFolderCount()
+        public IEnumerable<IMailFolder> SubFolders
         {
-            if (_folder == null)
+            get
             {
-                return HttpUtil.GetItemAsync<int>("Folders/$count").Result;
-            }
-            else
-            {
-                return HttpUtil.GetItemAsync<int>(Uri + "/ChildFolders/$count").Result;
+                return GetSubFolders();
             }
         }
 
@@ -85,14 +69,6 @@ namespace MailSim.ProvidersREST
             get
             {
                 return GetMailItems(string.Empty, GetMailCount());
-            }
-        }
-
-        private string Uri
-        {
-            get
-            {
-                return string.Format("Folders/{0}", _folder.Id);
             }
         }
 
@@ -112,22 +88,6 @@ namespace MailSim.ProvidersREST
             return items.Where(i => i.Subject.ContainsCaseInsensitive(filter));
         }
 
-        private IEnumerable<MailItemProviderHTTP.Message> GetMessages(string filter, int count)
-        {
-            string uri;
-
-            if (string.IsNullOrEmpty(filter))
-            {
-                uri = Uri + string.Format("/Messages?&$top={0}", count);
-            }
-            else
-            {
-                uri = Uri + string.Format("/Messages?$search=\"{1}\"&$top={0}", count, filter);
-            }
-
-            return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
-        }
-
         public IMailFolder AddSubFolder(string name)
         {
             dynamic folderName = new ExpandoObject();
@@ -138,23 +98,7 @@ namespace MailSim.ProvidersREST
             return new MailFolderProviderHTTP(newFolder);
         }
 
-        public IEnumerable<IMailFolder> SubFolders
-        {
-            get
-            {
-                return GetSubFolders();
-            }
-        }
-
-        private IEnumerable<IMailFolder> GetSubFolders()
-        {
-            string uri = _folder == null ? "Folders" : Uri + "/ChildFolders";
-
-            var folders = HttpUtil.EnumerateCollection<Folder>(uri, int.MaxValue);
-
-            return folders.Select(f => new MailFolderProviderHTTP(f));
-        }
-
+        // TODO: Implement this after Notifications graduate from preview state
         public void RegisterItemAddEventHandler(Action<IMailItem> callback)
         {
 #if false
@@ -177,10 +121,7 @@ namespace MailSim.ProvidersREST
 #endif
         }
 
-        private static void StartNotificationListener(string id, Action<IMailItem> callback)
-        {
-        }
-
+        // TODO: Implement this after Notifications graduate from preview state
         public void UnRegisterItemAddEventHandler()
         {
 #if false
@@ -190,6 +131,74 @@ namespace MailSim.ProvidersREST
 
             Util.DeleteAsync(uri).Wait();
 #endif
+        }
+
+        internal string Handle
+        {
+            get
+            {
+                return _folder.Id;
+            }
+        }
+
+        private string Uri
+        {
+            get
+            {
+                return string.Format("Folders/{0}", _folder.Id);
+            }
+        }
+
+        private int GetMailCount()
+        {
+            return HttpUtil.GetItemAsync<int>(Uri + "/Messages/$count").Result;
+        }
+
+        private int GetChildFolderCount()
+        {
+            if (_folder == null)
+            {
+                return HttpUtil.GetItemAsync<int>("Folders/$count").Result;
+            }
+            else
+            {
+                return HttpUtil.GetItemAsync<int>(Uri + "/ChildFolders/$count").Result;
+            }
+        }
+
+        private IEnumerable<MailItemProviderHTTP.Message> GetMessages(string filter, int count)
+        {
+            string uri;
+
+            if (string.IsNullOrEmpty(filter))
+            {
+                uri = Uri + string.Format("/Messages?&$top={0}", PageSize);
+            }
+            else
+            {
+                // TODO: We'd really like to use server-side filtering,
+                // but it looks like search only works in terms of StartsWith method.
+#if true
+                uri = Uri + string.Format("/Messages?&$top={0}", PageSize);
+#else
+                uri = Uri + string.Format("/Messages?$search=\"{1}\"&$top={0}", PageSize, filter);
+#endif
+            }
+
+            return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
+        }
+
+        private static void StartNotificationListener(string id, Action<IMailItem> callback)
+        {
+        }
+
+        private IEnumerable<IMailFolder> GetSubFolders()
+        {
+            string uri = _folder == null ? "Folders" : Uri + "/ChildFolders";
+
+            var folders = HttpUtil.EnumerateCollection<Folder>(uri, int.MaxValue);
+
+            return folders.Select(f => new MailFolderProviderHTTP(f));
         }
 
         internal class Folder

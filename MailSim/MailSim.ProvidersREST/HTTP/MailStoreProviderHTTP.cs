@@ -11,12 +11,17 @@ namespace MailSim.ProvidersREST
 {
     public class MailStoreProviderHTTP : MailStoreProviderBase, IMailStore
     {
-        public MailStoreProviderHTTP()
+        public MailStoreProviderHTTP(string userName, string password) :
+            base(userName, password)
         {
             var user = HttpUtil.GetItemAsync<User>(string.Empty).Result;
             DisplayName = user.Id;
             RootFolder = new MailFolderProviderHTTP(null, DisplayName);
         }
+
+        public string DisplayName { get; private set; }
+
+        public IMailFolder RootFolder { get; private set; }
 
         public IMailItem NewMailItem()
         {
@@ -34,15 +39,11 @@ namespace MailSim.ProvidersREST
                 Importance = "High"
             };
 
-            // Save the draft message. Saving to Me.Messages saves the message in the Drafts folder.
+            // Save the draft message.
             var newMessage = HttpUtil.PostItemAsync("Messages", message).Result;
 
             return new MailItemProviderHTTP(newMessage);
         }
-
-        public string DisplayName { get; private set; }
-
-        public IMailFolder RootFolder { get; private set; }
 
         public IMailFolder GetDefaultFolder(string name)
         {

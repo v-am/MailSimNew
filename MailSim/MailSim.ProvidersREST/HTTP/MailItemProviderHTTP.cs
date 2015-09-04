@@ -27,7 +27,7 @@ namespace MailSim.ProvidersREST
 
             set
             {
-                SetAndUpdate((message) => message.Subject = value);
+                _message.Subject = value;
             }
         }
 
@@ -40,12 +40,11 @@ namespace MailSim.ProvidersREST
 
             set
             {
-                SetAndUpdate((message) =>
-                    message.Body = new ItemBody
-                    {
-                        Content = value,
-                        ContentType = "HTML"
-                    });
+                _message.Body = new ItemBody
+                {
+                    Content = value,
+                    ContentType = "HTML"
+                };
             }
         }
 
@@ -57,28 +56,15 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private string Uri
-        {
-            get
-            {
-                return string.Format("/Messages/{0}", _message.Id);
-            }
-        }
-
-        private void SetAndUpdate(Action<Message> action)
-        {
-            action(_message);
-        }
-
         public void AddRecipient(string recipient)
         {
-            SetAndUpdate((message) => message.ToRecipients.Add(new Recipient
+            _message.ToRecipients.Add(new Recipient
             {
                 EmailAddress = new EmailAddress
                 {
                     Address = recipient
                 }
-            }));
+            });
         }
 
         public void AddAttachment(string filepath)
@@ -100,6 +86,7 @@ namespace MailSim.ProvidersREST
             }
         }
 
+        // TODO: Figure out how to implement this
         public void AddAttachment(IMailItem mailItem)
         {
 #if false
@@ -113,14 +100,6 @@ namespace MailSim.ProvidersREST
 
            Util.PostAsync<ItemAttachment>(Uri + "/attachments", itemAttachment).Wait();
 #endif
-        }
-
-        internal Message Handle
-        {
-            get
-            {
-                return _message;
-            }
         }
 
         // Create a reply message
@@ -169,6 +148,23 @@ namespace MailSim.ProvidersREST
         {
             // TODO: Implement this
             return true;
+        }
+
+        #if false
+        internal Message Handle
+        {
+            get
+            {
+                return _message;
+            }
+        }
+#endif
+        private string Uri
+        {
+            get
+            {
+                return string.Format("/Messages/{0}", _message.Id);
+            }
         }
 
         internal class Message

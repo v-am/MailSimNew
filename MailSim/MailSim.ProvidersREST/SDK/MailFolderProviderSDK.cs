@@ -24,8 +24,7 @@ namespace MailSim.ProvidersREST
 
             _id = folder.Id;
 
-            _folderFetcher = new Lazy<IFolderFetcher>(() => 
-                                      _outlookClient.Me.Folders.GetById(_id));
+            _folderFetcher = new Lazy<IFolderFetcher>(() => _outlookClient.Me.Folders.GetById(_id));
         }
 
         internal MailFolderProviderSDK(OutlookServicesClient outlookClient, string rootName)
@@ -46,26 +45,6 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        internal string Handle
-        {
-            get
-            {
-                return _id;
-            }
-        }
-
-        private async Task<int> MailCountRequest(string folderId)
-        {
-            string uri = string.Format("Folders/{0}/Messages/$count", folderId);
-
-            return await HttpUtil.GetItemAsync<int>(uri);
-        }
-
-        private async Task<int> FoldersCountRequest()
-        {
-            return await HttpUtil.GetItemAsync<int>("Folders/$count");
-        }
-
         public int MailItemsCount
         {
             get
@@ -74,24 +53,13 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private int GetMailCount()
-        {
-            long count = 0;
-#if true
-            count = MailCountRequest(_id).Result;
-#else
-            // TODO: This call fails
-            count = _folderFetcher.Messages.CountAsync().Result;
-#endif
-            return (int) count;
-        }
-
         public int SubFoldersCount
         {
             get
             {
                 if (_isRoot)
                 {
+                    // TODO: CountAsync() method fails; have to use direct HTTP call
 #if true
                     return FoldersCountRequest().Result;
 #else
@@ -119,7 +87,7 @@ namespace MailSim.ProvidersREST
         {
             // TODO: there is no way right now to filter mails server-side
             var pages = _folderFetcher.Value.Messages
-                .Take(100)
+                .Take(100)      // set the page size
                 .ExecuteAsync()
                 .Result;
 
@@ -128,30 +96,6 @@ namespace MailSim.ProvidersREST
             var items = GetFilteredItems(pages, count, (i) => i.Subject.ContainsCaseInsensitive(filter));
 
             return items.Select(i => new MailItemProviderSDK(_outlookClient, i));
-        }
-
-        private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
-        {
-            foreach (var item in pages.CurrentPage)
-            {
-                if (filter(item) && count-- > 0)
-                {
-                    yield return item;
-                }
-            }
-
-            while (count > 0 && pages.MorePagesAvailable)
-            {
-                pages = pages.GetNextPageAsync().Result;
-
-                foreach (var item in pages.CurrentPage)
-                {
-                    if (filter(item) && count-- > 0)
-                    {
-                        yield return item;
-                    }
-                }
-            }
         }
 
         public void Delete()
@@ -181,15 +125,12 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private IEnumerable<IMailFolder> GetSubFolders()
+        internal string Handle
         {
-            var folderCollection = _isRoot ? _outlookClient.Me.Folders : _folderFetcher.Value.ChildFolders;
-
-            IPagedCollection<IFolder> folders = folderCollection.ExecuteAsync().Result;
-
-            var allFolders = GetFilteredItems(folders, int.MaxValue, (f) => true);
-
-            return allFolders.Select(f => new MailFolderProviderSDK(_outlookClient, f));
+            get
+            {
+                return _id;
+            }
         }
  
         public void RegisterItemAddEventHandler(Action<IMailItem> callback)
@@ -200,6 +141,73 @@ namespace MailSim.ProvidersREST
         public void UnRegisterItemAddEventHandler()
         {
             // TODO: Implement this
+        }
+
+        private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
+        {
+            foreach (var item in pages.CurrentPage)
+            {
+                if (--count < 0)
+                {
+                    yield break;
+                }
+                else if (filter(item))
+                {
+                    yield return item;
+                }
+            }
+
+            while (count > 0 && pages.MorePagesAvailable)
+            {
+                pages = pages.GetNextPageAsync().Result;
+
+                foreach (var item in pages.CurrentPage)
+                {
+                    if (--count < 0)
+                    {
+                        yield break;
+                    }
+                    else if (filter(item))
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
+
+        private int GetMailCount()
+        {
+            long count = 0;
+            // TODO: CountAsync() method fails; have to use direct HTTP call
+#if true
+            count = MailCountRequest(_id).Result;
+#else
+            count = _folderFetcher.Messages.CountAsync().Result;
+#endif
+            return (int)count;
+        }
+
+        private IEnumerable<IMailFolder> GetSubFolders()
+        {
+            var folderCollection = _isRoot ? _outlookClient.Me.Folders : _folderFetcher.Value.ChildFolders;
+
+            IPagedCollection<IFolder> folders = folderCollection.ExecuteAsync().Result;
+
+            var allFolders = GetFilteredItems(folders, int.MaxValue, (f) => true);
+
+            return allFolders.Select(f => new MailFolderProviderSDK(_outlookClient, f));
+        }
+
+        private async Task<int> MailCountRequest(string folderId)
+        {
+            string uri = string.Format("Folders/{0}/Messages/$count", folderId);
+
+            return await HttpUtil.GetItemAsync<int>(uri);
+        }
+
+        private async Task<int> FoldersCountRequest()
+        {
+            return await HttpUtil.GetItemAsync<int>("Folders/$count");
         }
     }
 }

@@ -22,12 +22,9 @@ namespace MailSim
     {
         private readonly MailSimSequence sequence;
         private MailSimOperations operations;
-        private XmlDocument operationXML;
         private readonly IMailStore olMailStore;
         private readonly Random randomNum = new Random();
 
-        private const string Recipients = "Recipients";
-        private const string RandomRecipients = "RandomRecipients";
         private const string DefaultSubject = "Default Subject";
         private const string DefaultBody = "Default Body";
         private const int MaxNumberOfRandomFolder = 100;
@@ -43,7 +40,7 @@ namespace MailSim
         /// Constructor
         /// </summary>
         /// <param name="seq">Sequence file content </param>
-        public ExecuteSequence(MailSimSequence seq)
+        public ExecuteSequence(MailSimSequence seq, MailSimOptions options)
         {
             typeFuncs[typeof(MailSimOperationsMailSend)] = (oper) => MailSend((MailSimOperationsMailSend)oper);
             typeFuncs[typeof(MailSimOperationsMailDelete)] = (oper) => MailDelete((MailSimOperationsMailDelete)oper);
@@ -60,7 +57,7 @@ namespace MailSim
             {
                 try
                 {
-                    olMailStore = ProviderFactory.CreateMailStore(null, sequence);
+                    olMailStore = ProviderFactory.CreateMailStore(null, options);
                 }
                 catch (Exception)
                 {
@@ -108,7 +105,7 @@ namespace MailSim
                 int iterations = GetIterationCount(group.Iterations);
 
                 // Run the operations file
-                operations = ConfigurationFile.LoadOperationFile(group.OperationFile, out operationXML);
+                operations = ConfigurationFile.LoadOperationFile(group.OperationFile);
 
                 if (operations == null)
                 {
@@ -792,7 +789,7 @@ namespace MailSim
 
             folderName = folderName ?? string.Empty;
 
-            return subFolders.Where(x => x.Name.Contains(folderName));
+            return subFolders.Where(x => x.Name.ContainsCaseInsensitive(folderName));
         }
 
         private bool AddRecipients(IMailItem mail, dynamic operation)

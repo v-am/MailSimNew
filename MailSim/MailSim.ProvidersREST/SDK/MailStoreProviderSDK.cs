@@ -17,17 +17,21 @@ namespace MailSim.ProvidersREST
 
         private OutlookServicesClient _outlookClient;
         private readonly IUser _user;
-        private readonly IMailFolder _rootFolder;
 
-        public MailStoreProviderSDK()
+        public MailStoreProviderSDK(string userName, string password) :
+            base(userName, password)
         {
             _outlookClient = GetOutlookClient("Mail");
 
             _user = _outlookClient.Me.ExecuteAsync().Result;
 
             DisplayName = _user.Id;
-            _rootFolder = new MailFolderProviderSDK(_outlookClient, _user.Id);
+            RootFolder = new MailFolderProviderSDK(_outlookClient, _user.Id);
         }
+
+        public string DisplayName { get; private set; }
+
+        public IMailFolder RootFolder { get; private set; }
 
         public IMailItem NewMailItem()
         {
@@ -49,16 +53,6 @@ namespace MailSim.ProvidersREST
             _outlookClient.Me.Messages.AddMessageAsync(message).Wait();
 
             return new MailItemProviderSDK(_outlookClient, message);
-        }
-
-        public string DisplayName { get; private set; }
-
-        public IMailFolder RootFolder
-        {
-            get
-            {
-                return _rootFolder;
-            }
         }
 
         public IMailFolder GetDefaultFolder(string name)

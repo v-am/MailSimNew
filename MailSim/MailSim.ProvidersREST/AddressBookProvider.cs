@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MailSim.Common.Contracts;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.Azure.ActiveDirectory.GraphClient.Extensions;
+using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
@@ -19,16 +20,40 @@ namespace MailSim.ProvidersREST
             _adClient = adClient;
         }
 
-        /// <summary>
-        /// Builds list of addresses for all users in the Address List that have display name match
-        /// </summary>
-        /// <param name="match"> string to match in user name or null to return all users in the GAL</param>
-        /// <returns>List of SMTP addresses of matching users in the address list. The list will be empty if no users exist or match.</returns>
         public IEnumerable<string> GetUsers(string match, int count)
         {
-            match = match ?? string.Empty;
-
             return EnumerateUsers(match, count);
+        }
+
+        public IEnumerable<string> GetDLMembers(string dLName, int count)
+        {
+            if (string.IsNullOrEmpty(dLName))
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            var pagedGroups = _adClient.Groups
+                    .Where(g => g.DisplayName.StartsWith(dLName))
+                    .ExecuteAsync()
+                    .Result;
+
+            // Look for the group with exact match
+            var group = GetFilteredItems(pagedGroups, int.MaxValue,
+                               (g) => g.DisplayName.EqualsCaseInsensitive(dLName))
+                               .FirstOrDefault();
+
+            if (group == null)
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            var groupFetcher = group as IGroupFetcher;
+
+            var pagedMembers = groupFetcher.Members.ExecuteAsync().Result;
+
+            var members = GetFilteredItems(pagedMembers, count, (member) => member is User);
+
+            return members.Select(m => (m as User).UserPrincipalName);
         }
 
         private IEnumerable<string> EnumerateUsers(string match, int count)
@@ -38,11 +63,12 @@ namespace MailSim.ProvidersREST
             if (string.IsNullOrEmpty(match))
             {
                 pagedUsers = _adClient.Users
-                     .ExecuteAsync()
+                    .ExecuteAsync()
                     .Result;
             }
             else
             {
+                // Apply server-side filtering
                 pagedUsers = _adClient.Users
                     .Where(x =>
                         x.UserPrincipalName.StartsWith(match) ||
@@ -59,51 +85,15 @@ namespace MailSim.ProvidersREST
             return users.Select(u => u.UserPrincipalName);
         }
 
-        /// <summary>
-        /// Builds list of addresses for all members of Exchange Distribution list in the Address List
-        /// </summary>
-        /// <param name="dLName">Exchane Distribution List Name</param>
-        /// <returns>List of SMTP addresses of DL members or null if DL is not found. Nesting DLs are not expanded. </returns>
-        public IEnumerable<string> GetDLMembers(string dLName, int count)
-        {
-            IReadOnlyList<IGroup> groups;
-
-            if (string.IsNullOrEmpty(dLName))
-            {
-                groups = _adClient.Groups
-                    .ExecuteAsync()
-                    .Result
-                    .CurrentPage;   // assume we are going to use the first matching group
-            }
-            else
-            {
-                groups = _adClient.Groups
-                    .Where(g => g.Mail.StartsWith(dLName))
-                    .ExecuteAsync()
-                    .Result
-                    .CurrentPage;   // assume we are going to use the first matching group
-            }
-
-            if (groups.Any() == false)
-            {
-                return Enumerable.Empty<string>();
-            }
-
-            var group = groups.First() as Group;
-            IGroupFetcher groupFetcher = group;
-
-            var pages = groupFetcher.Members.ExecuteAsync().Result;
-
-            var members = GetFilteredItems(pages, count, (member) => member is User);
-
-            return members.Select(m => (m as User).UserPrincipalName);
-        }
-
         private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
         {
             foreach (var item in pages.CurrentPage)
             {
-                if (filter(item) && count-- > 0)
+                if (--count < 0)
+                {
+                    yield break;
+                }
+                else if (filter(item))
                 {
                     yield return item;
                 }
@@ -115,7 +105,11 @@ namespace MailSim.ProvidersREST
 
                 foreach (var item in pages.CurrentPage)
                 {
-                    if (filter(item) && count-- > 0)
+                    if (--count < 0)
+                    {
+                        yield break;
+                    }
+                    else if (filter(item))
                     {
                         yield return item;
                     }

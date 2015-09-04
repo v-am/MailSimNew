@@ -27,28 +27,13 @@ namespace MailSim.ProvidersREST
 
         internal static IEnumerable<T> EnumerateCollection<T>(string uri, int count)
         {
-#if false
-            IEnumerable<T> items = Enumerable.Empty<T>();
-
             while (count > 0 && uri != null)
-            {
-                var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
-
-                items = items.Union(msgsColl.value.Take(count));
-                count -= msgsColl.value.Count();
-
-                uri = msgsColl.NextLink;
-            }
-
-            return items;
-#else
-            while (uri != null)
             {
                 var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
 
                 foreach (var m in msgsColl.value)
                 {
-                    if (--count <= 0)
+                    if (--count < 0)
                     {
                         yield break;
                     }
@@ -57,7 +42,6 @@ namespace MailSim.ProvidersREST
 
                 uri = msgsColl.NextLink;
             }
-#endif
         }
 
         internal static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri)
