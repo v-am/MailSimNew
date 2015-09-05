@@ -27,12 +27,20 @@ namespace MailSim
 {
     class MailSimTest
     {
+        private readonly MailSimOptions _options;
+        private readonly string _mailboxName;
+
+        internal MailSimTest(MailSimOptions options, string mailboxName)
+        {
+            _options = options;
+            _mailboxName = mailboxName;
+        }
+
         /// <summary>
         /// Test module, focusing on Outlook (OOM) wrapper classes (Mail*)
         /// Also serves as an example for Mail* classes usage 
         /// </summary>
-        /// <param name="args">Command line argument. It is expected that the first argument is always "/t"</param>
-        public void Execute(string[] args)
+        public void Execute()
         {
             IMailStore mailStore = null;
 
@@ -40,12 +48,7 @@ namespace MailSim
             {
                 // We will use mailbox with display name specified in arg[1];
                 // otherwise, we will get the default store
-                mailStore = ProviderFactory.CreateMailStore(args.Length > 1 ? args[1] : null);
-            }
-            catch (ArgumentException ex)
-            {
-                Console.WriteLine(ex.Message);
-                return;
+                mailStore = ProviderFactory.CreateMailStore(_mailboxName, _options);
             }
             catch (Exception ex)
             {
@@ -93,7 +96,7 @@ namespace MailSim
                 testFolder = inbox.AddSubFolder(testFolderName);
             }
 
-            var items = inbox.GetMailItems("azure", 50);
+            var items = inbox.GetMailItems("ABC", 500);
 
             int index = 0;
             foreach (var i in items)
@@ -136,15 +139,15 @@ namespace MailSim
             if (mailItemsCount > 0)
             {
                 var message = inbox.MailItems.First();
- //               newMail.AddAttachment(message);
-                newMail.AddAttachment(@"C:\SW\MailSimRun\Attachments\TestAttachment.txt");
+                newMail.AddAttachment(message);
+ //               newMail.AddAttachment(@"C:\SW\MailSimRun\Attachments\TestAttachment.txt");
             }
 
             newMail.AddRecipient(mailboxName);
 
             var gal = mailStore.GetGlobalAddressList();
 
-            foreach (string userAddress in gal.GetUsers("alex", 100))
+            foreach (string userAddress in gal.GetUsers("Mailsim", 100))
             {
                 newMail.AddRecipient(userAddress);
             }
@@ -166,7 +169,7 @@ namespace MailSim
             newMail.Body = "Test from MailSim to DL members";
             newMail.AddRecipient(mailboxName);
 
-            var members = gal.GetDLMembers("Mailsim Users", 200);
+            var members = gal.GetDLMembers("rodina interest group"/*"Mailsim Users"*/, 200);
 
             if (members.Any() == false)
             {
@@ -189,7 +192,6 @@ namespace MailSim
             {
                 Console.WriteLine("Incorrect recipient(s), mail not sent");
             }
-
 
             var inboxMailItems = inbox.MailItems;
             // Reply All
