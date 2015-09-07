@@ -21,7 +21,7 @@ namespace MailSim
                     return new ProvidersREST.MailStoreProviderSDK(options.UserName, options.Password);
 
                 default:
-                    throw new Exception(string.Format("Unhandled provider type: {0}!!!", options.ProviderType));
+                    throw new Exception(string.Format("Unknown provider type: {0}!", options.ProviderType));
             }
         }
     }
