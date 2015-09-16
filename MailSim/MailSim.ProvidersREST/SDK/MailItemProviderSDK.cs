@@ -88,7 +88,9 @@ namespace MailSim.ProvidersREST
                     Size = bytes.Length
                 };
 
-                msgFetcher.Attachments.AddAttachmentAsync(fileAttachment).Wait();
+                msgFetcher.Attachments.AddAttachmentAsync(fileAttachment).ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
             }
         }
 
@@ -118,11 +120,15 @@ namespace MailSim.ProvidersREST
 
             if (replyAll)
             {
-                replyMsg = Message.CreateReplyAllAsync().Result;
+                replyMsg = Message.CreateReplyAllAsync().ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
             }
             else
             {
-                replyMsg = Message.CreateReplyAsync().Result;
+                replyMsg = Message.CreateReplyAsync().ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
             }
 
             return new MailItemProviderSDK(_outlookClient, replyMsg);
@@ -132,7 +138,9 @@ namespace MailSim.ProvidersREST
         {
             IMessage msg = null;
 
-            msg = Message.CreateForwardAsync().Result;
+            msg = Message.CreateForwardAsync().ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
 
             return new MailItemProviderSDK(_outlookClient, msg);
         }
@@ -140,7 +148,9 @@ namespace MailSim.ProvidersREST
         public void Send()
         {
             // This generates Me/SendMail; all the data should be in the body
-            Message.SendAsync().Wait();
+            Message.SendAsync().ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
         
         // TODO: Should this method return a IMailItem?
@@ -149,12 +159,16 @@ namespace MailSim.ProvidersREST
             var folderProvider = newFolder as MailFolderProviderSDK;
 
             var folderId = folderProvider.Handle;
-            Message.MoveAsync(folderId).Wait();
+            Message.MoveAsync(folderId).ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public void Delete()
         {
-            _message.DeleteAsync().Wait();
+            _message.DeleteAsync().ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public bool ValidateRecipients()
@@ -183,11 +197,15 @@ namespace MailSim.ProvidersREST
         {
             IMessage message = null;
 
-            message = _outlookClient.Me.Messages[_message.Id].ExecuteAsync().Result;
+            message = _outlookClient.Me.Messages[_message.Id].ExecuteAsync().ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
 
             action(message);
 
-            message.UpdateAsync().Wait();
+            message.UpdateAsync().ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
     }
 }

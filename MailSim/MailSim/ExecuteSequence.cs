@@ -176,7 +176,7 @@ namespace MailSim
             try
             {
                 operation = operations.Items
-                    .SingleOrDefault(x => string.Equals(GetOperationName(x), taskName, StringComparison.OrdinalIgnoreCase));
+                    .SingleOrDefault(x => taskName.EqualsCaseInsensitive(x.OperationName));
             }
             catch (InvalidOperationException)
             {
@@ -800,11 +800,6 @@ namespace MailSim
         private static int GetIterationCount(string countString)
         {
             return string.IsNullOrEmpty(countString) ? 1 : Convert.ToInt32(countString);
-        }
-
-        private string GetOperationName(dynamic operation)
-        {
-            return operation.OperationName;
         }
 
         private static void SleepOrStop(string name, string sleepSeconds)

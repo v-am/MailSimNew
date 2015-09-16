@@ -16,6 +16,7 @@
         </xs:element>
         <xs:element minOccurs="0" name="UserName" type="xs:string"/>
         <xs:element minOccurs="0" name="Password" type="xs:string"/>
+        <!-- Specifies whether to turn off Outlook security prompt-->
         <xs:element minOccurs="0" name="DisableOutlookPrompts" type="xs:boolean"/>
       </xs:sequence>
     </xs:complexType>

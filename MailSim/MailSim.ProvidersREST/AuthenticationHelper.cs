@@ -4,6 +4,8 @@ using System;
 using System.Threading.Tasks;
 
 using MailSim.Common;
+using System.Web;
+using System.Collections.Generic;
 
 namespace MailSim.ProvidersREST
 {
@@ -39,6 +41,34 @@ namespace MailSim.ProvidersREST
         private static string UserName { get; set; }
         private static string Password { get; set; }
 
+        private class AuthResponse
+        {
+            public bool admin_consent { get; set; }
+            public string code { get; set; }
+            public string session_state { get; set; }
+            public string state { get; set; }
+        }
+
+        private class AccessTokenResponse
+        {
+            public string access_token { get; set; }
+            public int expires_in { get; set; }
+            public int expires_on { get; set; }
+            public string id_token { get; set; }
+            public string refresh_token { get; set; }
+            public string resource { get; set; }
+            public string scope { get; set; }
+            public string token_type { get; set; }
+        }
+
+        private class IdToken
+        {
+            public string tid { get; set; }
+        }
+
+        private static bool _useHttp = false;
+        private static IDictionary<string, AccessTokenResponse> _tokenResponses = new Dictionary<string, AccessTokenResponse>();
+
         /// <summary>
         /// Checks that a Graph client is available.
         /// </summary>
@@ -57,16 +87,33 @@ namespace MailSim.ProvidersREST
             // Active Directory service endpoints
             Uri aadServiceEndpointUri = new Uri(AadServiceResourceId);
 
-            try
+            if (_useHttp)
             {
-                //First, look for the authority used during the last authentication.
-                //If that value is not populated, use CommonAuthority.
-                string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
 
-                // Create an AuthenticationContext using this authority.
-                _authenticationContext = new AuthenticationContext(authority);
+                //                string oauthUri = CommonAuthority + "/oauth2/";
+#if false
+                string uri = string.Format("{0}/authorize/?response_type=code&client_id={1}&redirect_uri={2}",
+                                                            oauthUri,
+                                                            Resources.ClientID,
+                                                            Resources.ReturnUri);
+                var res = HttpUtilSync.GetItem<AuthResponse>(uri);
+#endif
+                var token = GetTokenHelper2(AadServiceResourceId);
 
-                var token = await GetTokenHelperAsync(_authenticationContext, AadServiceResourceId);
+                var tokenResponse = _tokenResponses[AadServiceResourceId];
+                var id_token = tokenResponse.id_token;
+
+                //                var xxx = JWT.JsonWebToken.Base64UrlDecode(id_token);
+                IdToken idToken = null;
+
+                try
+                {
+                    //                    var json = JWT.JsonWebToken.Decode(id_token, string.Empty, verify:false);
+                    idToken = JWT.JsonWebToken.DecodeToObject<IdToken>(id_token, string.Empty, verify: false);
+                }
+                catch (Exception ex)
+                {
+                }
 
                 // Check the token
                 if (string.IsNullOrEmpty(token))
@@ -77,18 +124,88 @@ namespace MailSim.ProvidersREST
                 else
                 {
                     // Create our ActiveDirectory client.
+                    // TODO: Is TenantID required?
                     _graphClient = new ActiveDirectoryClient(
-                        new Uri(aadServiceEndpointUri, TenantId),
-                        async () => await GetTokenHelperAsync(_authenticationContext, AadServiceResourceId));
+                        new Uri(aadServiceEndpointUri, idToken.tid),
+                        async () => await GetTokenHelperAsync2(AadServiceResourceId));
 
                     return _graphClient;
                 }
             }
-            catch (Exception)
+            else
             {
-                _authenticationContext.TokenCache.Clear();
-                throw;
+                try
+                {
+                    //First, look for the authority used during the last authentication.
+                    //If that value is not populated, use CommonAuthority.
+                    string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
+
+                    // Create an AuthenticationContext using this authority.
+                    _authenticationContext = new AuthenticationContext(authority);
+
+                    var token = await GetTokenHelperAsync(_authenticationContext, AadServiceResourceId);
+
+                    // Check the token
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        // User cancelled sign-in
+                        throw new Exception("Sign-in cancelled");  // assuming we don't want to continue
+                    }
+                    else
+                    {
+                        // Create our ActiveDirectory client.
+                        _graphClient = new ActiveDirectoryClient(
+                            new Uri(aadServiceEndpointUri, TenantId),
+                            async () => await GetTokenHelperAsync(_authenticationContext, AadServiceResourceId));
+
+                        return _graphClient;
+                    }
+                }
+                catch (Exception)
+                {
+                    _authenticationContext.TokenCache.Clear();
+                    throw;
+                }
             }
+        }
+
+        private static async Task<string> GetTokenHelperAsync2(string resourceId)
+        {
+            return await Task.Run(() => GetTokenHelper2(resourceId));
+        }
+
+        private static string GetTokenHelper2(string resourceId)
+        {
+            AccessTokenResponse tokenResponse;
+
+            if (_tokenResponses.TryGetValue(resourceId, out tokenResponse) == false)
+            {
+                _tokenResponses[resourceId] = QueryTokenResponse(resourceId);
+            }
+
+            string accessToken = _tokenResponses[resourceId].access_token;
+
+            return accessToken;
+        }
+
+        private static AccessTokenResponse QueryTokenResponse(string resourceId)
+        {
+            string oauthUri = CommonAuthority + "/oauth2/";
+
+            string uri = string.Format("{0}token", oauthUri);
+
+            string body = string.Format("resource={0}&client_id={1}&grant_type=password&username={2}&password={3}&scope=openid",
+                                            HttpUtility.UrlEncode(resourceId),
+                                            HttpUtility.UrlEncode(ClientID),
+                                            HttpUtility.UrlEncode(UserName),
+                                            HttpUtility.UrlEncode(Password));
+
+            return HttpUtil.DoHttp2<string, AccessTokenResponse>("POST", uri, body).Result;
+        }
+
+        internal static string GetOutlookToken2()
+        {
+            return GetTokenHelper2(OfficeResourceId);
         }
 
         internal static string GetOutlookToken()
