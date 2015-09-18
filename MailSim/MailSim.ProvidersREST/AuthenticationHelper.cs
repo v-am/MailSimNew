@@ -21,7 +21,7 @@ namespace MailSim.ProvidersREST
         // Properties used for communicating with your Windows Azure AD tenant.
         private const string CommonAuthority = "https://login.microsoftonline.com/Common";
         private const string AadServiceResourceId = "https://graph.windows.net/";
-        private const string OfficeResourceId = "https://outlook.office365.com/";
+        internal const string OfficeResourceId = "https://outlook.office365.com/";
 
         private const string ModuleName = "AuthenticationHelper";
 
@@ -66,7 +66,7 @@ namespace MailSim.ProvidersREST
             public string tid { get; set; }
         }
 
-        private static bool _useHttp = false;
+        private static bool _useHttp = true;
         private static IDictionary<string, AccessTokenResponse> _tokenResponses = new Dictionary<string, AccessTokenResponse>();
 
         /// <summary>
@@ -98,12 +98,11 @@ namespace MailSim.ProvidersREST
                                                             Resources.ReturnUri);
                 var res = HttpUtilSync.GetItem<AuthResponse>(uri);
 #endif
-                var token = GetTokenHelper2(AadServiceResourceId);
+                var token = GetTokenHelperHttp(AadServiceResourceId, false);
 
                 var tokenResponse = _tokenResponses[AadServiceResourceId];
                 var id_token = tokenResponse.id_token;
 
-                //                var xxx = JWT.JsonWebToken.Base64UrlDecode(id_token);
                 IdToken idToken = null;
 
                 try
@@ -124,7 +123,6 @@ namespace MailSim.ProvidersREST
                 else
                 {
                     // Create our ActiveDirectory client.
-                    // TODO: Is TenantID required?
                     _graphClient = new ActiveDirectoryClient(
                         new Uri(aadServiceEndpointUri, idToken.tid),
                         async () => await GetTokenHelperAsync2(AadServiceResourceId));
@@ -171,16 +169,36 @@ namespace MailSim.ProvidersREST
 
         private static async Task<string> GetTokenHelperAsync2(string resourceId)
         {
-            return await Task.Run(() => GetTokenHelper2(resourceId));
+            return await Task.Run(() => GetTokenHelperHttp(resourceId, false));
         }
 
-        private static string GetTokenHelper2(string resourceId)
+        private static string GetTokenHelperHttp(string resourceId, bool isRefresh)
         {
             AccessTokenResponse tokenResponse;
 
             if (_tokenResponses.TryGetValue(resourceId, out tokenResponse) == false)
             {
                 _tokenResponses[resourceId] = QueryTokenResponse(resourceId);
+            }
+            else if (isRefresh)
+            {
+                string uri = CommonAuthority + "/oauth2/" + "token";
+                var authResponse = _tokenResponses[resourceId];
+
+//                string body = string.Format("grant_type=refresh_token&refresh_token={0}&client_id={1}/*&client_secret={2}*/&resource={2}",
+                string body = string.Format("grant_type=refresh_token&refresh_token={0}&client_id={1}&resource={2}",
+                                                HttpUtility.UrlEncode(authResponse.refresh_token),
+                                                HttpUtility.UrlEncode(ClientID),
+//                                                HttpUtility.UrlEncode(ClientID),    // secret ???
+                                                HttpUtility.UrlEncode(resourceId)
+                                                );
+
+                Log.Out(Log.Severity.Info, "", "Sending request for new token:" + body);
+
+                var newAuthResponse = HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (dummy) => null).Result;
+                _tokenResponses[resourceId] = newAuthResponse;
+
+                Log.Out(Log.Severity.Info, "", "Got new access token:" + _tokenResponses[resourceId].access_token);
             }
 
             string accessToken = _tokenResponses[resourceId].access_token;
@@ -200,17 +218,17 @@ namespace MailSim.ProvidersREST
                                             HttpUtility.UrlEncode(UserName),
                                             HttpUtility.UrlEncode(Password));
 
-            return HttpUtil.DoHttp2<string, AccessTokenResponse>("POST", uri, body).Result;
-        }
-
-        internal static string GetOutlookToken2()
-        {
-            return GetTokenHelper2(OfficeResourceId);
+            return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (isRefresh) => null).Result;
         }
 
         internal static string GetOutlookToken()
         {
             return GetTokenHelper(_authenticationContext, OfficeResourceId);
+        }
+
+        internal static string GetToken(string resourceId, bool isRefresh)
+        {
+            return GetTokenHelper(_authenticationContext, resourceId, isRefresh);
         }
 
         internal static async Task<string> GetTokenAsync(string resourceId)
@@ -226,9 +244,14 @@ namespace MailSim.ProvidersREST
             return await Task.Run(() => GetTokenHelper(context, resourceId));
         }
 
-        private static string GetTokenHelper(AuthenticationContext context, string resourceId)
+        private static string GetTokenHelper(AuthenticationContext context, string resourceId, bool isRefresh=false)
         {
             string accessToken = null;
+
+            if (context == null)
+            {
+                return GetTokenHelperHttp(resourceId, isRefresh);
+            }
             
             try
             {

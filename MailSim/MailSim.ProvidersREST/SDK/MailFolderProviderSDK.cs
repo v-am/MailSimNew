@@ -68,9 +68,7 @@ namespace MailSim.ProvidersREST
                 }
                 else
                 {
-                    IFolder folder = _folderFetcher.Value.ExecuteAsync().ConfigureAwait(false)
-                                    .GetAwaiter()
-                                    .GetResult();
+                    IFolder folder = _folderFetcher.Value.ExecuteAsync().GetResult();
                     return folder.ChildFolderCount ?? 0;
                 }
             }
@@ -87,17 +85,11 @@ namespace MailSim.ProvidersREST
 
         public IEnumerable<IMailItem> GetMailItems(string filter, int count)
         {
-            Log.Out(Log.Severity.Info, "GetMailItems", "Starting fetch...");
-
             // TODO: there is no way right now to filter mails server-side
             var pages = _folderFetcher.Value.Messages
                 .Take(100)      // set the page size
                 .ExecuteAsync()
-                .ConfigureAwait(false)
-                .GetAwaiter()
                 .GetResult();
-
-            Log.Out(Log.Severity.Info, "GetMailItems", "Got response!");
 
             filter = filter ?? string.Empty;
 
@@ -108,9 +100,9 @@ namespace MailSim.ProvidersREST
 
         public void Delete()
         {
-            var folder = _folderFetcher.Value.ExecuteAsync().Result;
+            var folder = _folderFetcher.Value.ExecuteAsync().GetResult();
 
-            folder.DeleteAsync().Wait();
+            folder.DeleteAsync().GetResult();
         }
 
         public IMailFolder AddSubFolder(string name)
@@ -151,7 +143,7 @@ namespace MailSim.ProvidersREST
             // TODO: Implement this
         }
 
-        private IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
+        private static IEnumerable<T> GetFilteredItems<T>(IPagedCollection<T> pages, int count, Func<T, bool> filter)
         {
             foreach (var item in pages.CurrentPage)
             {
@@ -167,9 +159,7 @@ namespace MailSim.ProvidersREST
 
             while (count > 0 && pages.MorePagesAvailable)
             {
-                pages = pages.GetNextPageAsync().ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+                pages = pages.GetNextPageAsync().GetResult();
 
                 foreach (var item in pages.CurrentPage)
                 {
@@ -201,9 +191,7 @@ namespace MailSim.ProvidersREST
         {
             var folderCollection = _isRoot ? _outlookClient.Me.Folders : _folderFetcher.Value.ChildFolders;
 
-            IPagedCollection<IFolder> folders = folderCollection.ExecuteAsync().ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+            IPagedCollection<IFolder> folders = folderCollection.ExecuteAsync().GetResult();
 
             var allFolders = GetFilteredItems(folders, int.MaxValue, (f) => true);
 
@@ -214,12 +202,12 @@ namespace MailSim.ProvidersREST
         {
             string uri = string.Format("Folders/{0}/Messages/$count", folderId);
 
-            return HttpUtilSync.GetItem<int>(uri);
+            return new HttpUtilSync().GetItem<int>(uri);
         }
 
         private int FoldersCountRequest()
         {
-            return HttpUtilSync.GetItem<int>("Folders/$count");
+            return new HttpUtilSync().GetItem<int>("Folders/$count");
         }
     }
 }

@@ -23,6 +23,10 @@ namespace MailSim.ProvidersREST
 
         public IMailFolder RootFolder { get; private set; }
 
+        private HttpUtilSync HttpUtilSync { get { return _providerBase.HttpUtilSync; } }
+
+        private HTTP.BaseProviderHttp _providerBase = new HTTP.BaseProviderHttp();
+
         public IMailItem NewMailItem()
         {
             var body = new MailItemProviderHTTP.ItemBody

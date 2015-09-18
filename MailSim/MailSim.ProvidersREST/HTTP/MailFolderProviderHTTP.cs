@@ -10,7 +10,7 @@ using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
-    class MailFolderProviderHTTP : IMailFolder
+    class MailFolderProviderHTTP : HTTP.BaseProviderHttp, IMailFolder
     {
         private const int PageSize = 100;   // the page to use for $top argument
         private readonly Folder _folder;
@@ -185,7 +185,7 @@ namespace MailSim.ProvidersREST
 #endif
             }
 
-            return HttpUtil.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
+            return HttpUtilSync.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
         }
 
         private static void StartNotificationListener(string id, Action<IMailItem> callback)
@@ -196,7 +196,7 @@ namespace MailSim.ProvidersREST
         {
             string uri = _folder == null ? "Folders" : Uri + "/ChildFolders";
 
-            var folders = HttpUtil.EnumerateCollection<Folder>(uri, int.MaxValue);
+            var folders = HttpUtilSync.EnumerateCollection<Folder>(uri, int.MaxValue);
 
             return folders.Select(f => new MailFolderProviderHTTP(f));
         }

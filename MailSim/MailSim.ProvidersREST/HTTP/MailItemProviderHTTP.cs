@@ -9,7 +9,7 @@ using System.Dynamic;
 
 namespace MailSim.ProvidersREST
 {
-    class MailItemProviderHTTP : IMailItem
+    class MailItemProviderHTTP : HTTP.BaseProviderHttp, IMailItem
     {
         private Message _message;
 

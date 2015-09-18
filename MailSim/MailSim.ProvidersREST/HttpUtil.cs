@@ -8,147 +8,118 @@ using System.Dynamic;
 using System.Linq;
 using MailSim.Common;
 using System.Text;
+using System;
 
 namespace MailSim.ProvidersREST
 {
     static class HttpUtil
     {
+        internal delegate string TokenFunc(bool isRefresh);
+
         private const string baseOutlookUri = @"https://outlook.office.com/api/v1.0/Me/";
 
-        internal static async Task<T> GetItemAsync<T>(string uri)
+        internal static async Task<T> GetItemAsync<T>(string uri, TokenFunc getToken)
         {
-            return await DoHttp<EmptyBody,T>(HttpMethod.Get, uri, null);
+            return await DoHttp<EmptyBody,T>(HttpMethod.Get, uri, null, getToken);
         }
 
-        internal static async Task<T> GetItemsAsync<T>(string uri)
+        internal static async Task<T> GetItemsAsync<T>(string uri, TokenFunc getToken)
         {
-            var coll = await GetCollectionAsync<T>(uri);
+            var coll = await GetCollectionAsync<T>(uri, getToken);
 
             return coll.value;
         }
 
-        internal static IEnumerable<T> EnumerateCollection<T>(string uri, int count)
+        internal static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri, TokenFunc getToken)
         {
-            while (count > 0 && uri != null)
-            {
-                var msgsColl = GetCollectionAsync<IEnumerable<T>>(uri).Result;
+            return await DoHttp<EmptyBody, ODataCollection<T>>(HttpMethod.Get, uri, null, getToken);
+        }
 
-                foreach (var m in msgsColl.value)
+        internal static async Task<T> PostItemAsync<T>(string uri, T item, TokenFunc getToken)
+        {
+            return await DoHttp<T, T>(HttpMethod.Post, uri, item, getToken);
+        }
+
+        internal static async Task<T> PostItemDynamicAsync<T>(string uri, dynamic body, TokenFunc getToken)
+        {
+            return await DoHttp<ExpandoObject, T>(HttpMethod.Post, uri, body, getToken);
+        }
+
+        internal static async Task DeleteItemAsync(string uri, TokenFunc getToken)
+        {
+            await DoHttp<EmptyBody, EmptyBody>(HttpMethod.Delete, uri, null, getToken);
+        }
+
+        internal static async Task<T> PatchItemAsync<T>(string uri, T item, TokenFunc getToken)
+        {
+            return await DoHttp<T,T>("PATCH", uri, item, getToken);
+        }
+
+        private static async Task<TResult> DoHttp<TBody, TResult>(HttpMethod method, string uri, TBody body, TokenFunc getToken)
+        {
+            Log.Out(Log.Severity.Info, "DoHttp", string.Format("Uri=[{0}]", uri));
+
+            bool isRefresh = false;
+
+            while (true)
+            {
+                HttpResponseMessage response = await SendRequestAsync(method, uri, body, getToken, isRefresh);
+
+                string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    if (--count < 0)
-                    {
-                        yield break;
-                    }
-                    yield return m;
+                    return JsonConvert.DeserializeObject<TResult>(jsonResponse);
                 }
+                else
+                {
+                    var errorDetail = string.IsNullOrEmpty(jsonResponse) ? null : JsonConvert.DeserializeObject<ODataError>(jsonResponse);
+                    var code = response.StatusCode;
 
-                uri = msgsColl.NextLink;
+                    if (isRefresh == false && code == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        var err = response.Headers.WwwAuthenticate.FirstOrDefault(x => x.Parameter.Contains("error=\"invalid_token\""));
+
+                        if (err != null)
+                        {
+                            Log.Out(Log.Severity.Info, "DoHttp", "Found invalid_token!!!");
+                            isRefresh = true;
+                            continue;
+                        }
+                    }
+
+                    throw new System.Exception(errorDetail == null ? code.ToString() : errorDetail.error.message);
+                }
             }
         }
 
-        private static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri)
+        private static async Task<HttpResponseMessage> SendRequestAsync<TBody>(HttpMethod method, string uri, TBody body, TokenFunc getToken, bool isRefresh)
         {
-            return await DoHttp<EmptyBody, ODataCollection<T>>(HttpMethod.Get, uri, null);
-        }
-
-        internal static async Task<T> PostItemAsync<T>(string uri, T item=default(T))
-        {
-            return await DoHttp<T, T>(HttpMethod.Post, uri, item);
-        }
-
-        internal static async Task<T> PostItemDynamicAsync<T>(string uri, dynamic body)
-        {
-            return await DoHttp<ExpandoObject, T>(HttpMethod.Post, uri, body);
-        }
-
-        internal static async Task DeleteItemAsync(string uri)
-        {
-            using (HttpClient client = GetHttpClient())
-            {
-                var response = await client.DeleteAsync(BuildUri(uri)).ConfigureAwait(false);
-
-                response.EnsureSuccessStatusCode();
-            }
-        }
-
-        internal static async Task<T> PatchItemAsync<T>(string uri, T item)
-        {
-            return await DoHttp<T,T>("PATCH", uri, item);
-        }
-
-        internal static async Task<TResult> DoHttp2<TBody, TResult>(string methodName, string uri, string body)
-        {
-            return await DoHttp2<TBody, TResult>(new HttpMethod(methodName), uri, body);
-
-        }
-        private static HttpClient GetHttpClient2()
-        {
-            HttpClient client = new HttpClient();
-
-            return client;
-        }
-
-        private static async Task<TResult> DoHttp2<TBody, TResult>(HttpMethod method, string uri, string body)
-        {
-            Log.Out(Log.Severity.Info, "DoHttp", string.Format("Uri=[{0}]", uri));
-
-            HttpResponseMessage response;
-            var request = new HttpRequestMessage(method, BuildUri(uri));
-
-//            request.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
-
-            if (body != null)
-            {
-                request.Content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded");
-            }
-
-            using (HttpClient client = GetHttpClient2())
-            {
-                response = await client.SendAsync(request).ConfigureAwait(false);
-            }
-
-            string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return JsonConvert.DeserializeObject<TResult>(jsonResponse);
-            }
-            else
-            {
-                var errorDetail = JsonConvert.DeserializeObject<ODataError>(jsonResponse);
-                throw new System.Exception(errorDetail.error.message);
-            }
-        }
-
-        private static async Task<TResult> DoHttp<TBody, TResult>(HttpMethod method, string uri, TBody body)
-        {
-            Log.Out(Log.Severity.Info, "DoHttp", string.Format("Uri=[{0}]", uri));
-
-            HttpResponseMessage response;
             var request = new HttpRequestMessage(method, BuildUri(uri));
 
             if (body != null)
             {
-                request.Content = new ObjectContent<TBody>(body, new JsonMediaTypeFormatter());
+                if (body is string)
+                {
+                    request.Content = new StringContent(body as string, Encoding.UTF8, "application/x-www-form-urlencoded");
+                }
+                else
+                {
+                    request.Content = new ObjectContent<TBody>(body, new JsonMediaTypeFormatter());
+                }
+            }
+
+            string token = getToken(isRefresh);
+
+            if (string.IsNullOrEmpty(token) == false)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
             using (HttpClient client = GetHttpClient())
             {
-                response = await client.SendAsync(request).ConfigureAwait(false);
-            }
-
-            string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return JsonConvert.DeserializeObject<TResult>(jsonResponse);
-            }
-            else
-            {
-                var errorDetail = JsonConvert.DeserializeObject<ODataError>(jsonResponse);
-                throw new System.Exception(errorDetail.error.message);
+                return await client.SendAsync(request).ConfigureAwait(false);
             }
         }
 
@@ -162,9 +133,9 @@ namespace MailSim.ProvidersREST
             public Error error { get; set; }
         }
 
-        internal static async Task<TResult> DoHttp<TBody, TResult>(string methodName, string uri, TBody body)
+        internal static async Task<TResult> DoHttp<TBody, TResult>(string methodName, string uri, TBody body, TokenFunc getToken)
         {
-            return await DoHttp<TBody,TResult>(new HttpMethod(methodName), uri, body);
+            return await DoHttp<TBody,TResult>(new HttpMethod(methodName), uri, body, getToken);
         }
 
         private static string BuildUri(string subUri)
@@ -179,14 +150,7 @@ namespace MailSim.ProvidersREST
 
         private static HttpClient GetHttpClient()
         {
-            HttpClient client = new HttpClient();
-
-            string token = AuthenticationHelper.GetOutlookToken(); // !!!
-
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
-
-            return client;
+            return new HttpClient();
         }
 
         internal class ODataCollection<TCollection>
