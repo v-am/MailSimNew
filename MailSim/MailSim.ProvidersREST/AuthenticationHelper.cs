@@ -1,4 +1,6 @@
-﻿using Microsoft.Azure.ActiveDirectory.GraphClient;
+﻿//#define USE_UNIFIED
+
+using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Threading.Tasks;
@@ -7,6 +9,7 @@ using MailSim.Common;
 using System.Web;
 using System.Collections.Generic;
 
+
 namespace MailSim.ProvidersREST
 {
     /// <summary>
@@ -14,13 +17,20 @@ namespace MailSim.ProvidersREST
     /// </summary>
     internal static class AuthenticationHelper
     {
+#if USE_UNIFIED   // using Unified App registration
+        private static readonly string ClientID = "c6de72e6-5aff-4491-97e5-b1b7a419d592";
+        private static string TenantId = "702cfb5c-c600-4b2d-962a-21ceb2c260ae";
+        private static string SecretKey = "W2RM2RMxM2a1VIP8VT1X/4muQEOL3AnqlZXQiLpSCEg=";
+        private const string AadServiceResourceId = "https://graph.microsoft.com/";
+#else
         private static readonly string ClientID = Resources.ClientID;
-
+        private static string TenantId { get; set; }
+        private const string AadServiceResourceId = "https://graph.windows.net/";
+#endif
         private static readonly Uri ReturnUri = new Uri(Resources.ReturnUri);
 
         // Properties used for communicating with your Windows Azure AD tenant.
         private const string CommonAuthority = "https://login.microsoftonline.com/Common";
-        private const string AadServiceResourceId = "https://graph.windows.net/";
         internal const string OfficeResourceId = "https://outlook.office365.com/";
 
         private const string ModuleName = "AuthenticationHelper";
@@ -34,7 +44,6 @@ namespace MailSim.ProvidersREST
         //Property for storing and returning the authority used by the last authentication.
         private static string LastAuthority { get; set; }
         //Property for storing the tenant id so that we can pass it to the ActiveDirectoryClient constructor.
-        private static string TenantId { get; set; }
         // Property for storing the logged-in user so that we can display user properties later.
         internal static string LoggedInUser { get; set; }
 
@@ -89,8 +98,6 @@ namespace MailSim.ProvidersREST
 
             if (_useHttp)
             {
-
-                //                string oauthUri = CommonAuthority + "/oauth2/";
 #if false
                 string uri = string.Format("{0}/authorize/?response_type=code&client_id={1}&redirect_uri={2}",
                                                             oauthUri,
@@ -98,9 +105,10 @@ namespace MailSim.ProvidersREST
                                                             Resources.ReturnUri);
                 var res = HttpUtilSync.GetItem<AuthResponse>(uri);
 #endif
-                var token = GetTokenHelperHttp(AadServiceResourceId, false);
 
+                var token = GetTokenHelperHttp(AadServiceResourceId, false);
                 var tokenResponse = _tokenResponses[AadServiceResourceId];
+
                 var id_token = tokenResponse.id_token;
 
                 IdToken idToken = null;
@@ -122,11 +130,34 @@ namespace MailSim.ProvidersREST
                 }
                 else
                 {
-                    // Create our ActiveDirectory client.
-                    _graphClient = new ActiveDirectoryClient(
-                        new Uri(aadServiceEndpointUri, idToken.tid),
-                        async () => await GetTokenHelperAsync2(AadServiceResourceId));
+#if USE_UNIFIED
+                    string uri = "https://graph.microsoft.com/beta/me";
+                    var xxx = HttpUtil.GetItemAsync<UserHttp>(uri, GetAADToken).Result;
 
+                    uri = "https://graph.microsoft.com/beta/" + idToken.tid + "/users/" + "admin@mailsimdemo.onmicrosoft.com";
+                    var yyy = HttpUtil.GetItemAsync<UserHttp>(uri, GetAADToken).Result;
+
+                    uri = "https://graph.microsoft.com/beta/" + idToken.tid + "/users/";
+                    var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
+#else
+                    // Create our ActiveDirectory client.
+                    string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
+#if true
+//                    string uri = "https://graph.windows.net/mailsimdemo.onmicrosoft.com/users?api-version=beta";
+                    string uri = "https://graph.windows.net/myorganization/users?api-version=beta";
+                    var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
+#else
+                    // Create an AuthenticationContext using this authority.
+                    var authenticationContext = new AuthenticationContext(authority);
+
+                    // Get TenandId
+                    var token2 = await GetTokenHelperAsync(authenticationContext, AadServiceResourceId);
+
+                    _graphClient = new ActiveDirectoryClient(
+                            new Uri(aadServiceEndpointUri, TenantId),
+                            async () => await GetTokenHelperAsync(authenticationContext, AadServiceResourceId));
+#endif
+#endif
                     return _graphClient;
                 }
             }
@@ -185,11 +216,9 @@ namespace MailSim.ProvidersREST
                 string uri = CommonAuthority + "/oauth2/" + "token";
                 var authResponse = _tokenResponses[resourceId];
 
-//                string body = string.Format("grant_type=refresh_token&refresh_token={0}&client_id={1}/*&client_secret={2}*/&resource={2}",
                 string body = string.Format("grant_type=refresh_token&refresh_token={0}&client_id={1}&resource={2}",
                                                 HttpUtility.UrlEncode(authResponse.refresh_token),
                                                 HttpUtility.UrlEncode(ClientID),
-//                                                HttpUtility.UrlEncode(ClientID),    // secret ???
                                                 HttpUtility.UrlEncode(resourceId)
                                                 );
 
@@ -208,6 +237,19 @@ namespace MailSim.ProvidersREST
 
         private static AccessTokenResponse QueryTokenResponse(string resourceId)
         {
+#if USE_UNIFIED
+            string oauthUri = CommonAuthority + "/oauth2/";
+
+            string uri = string.Format("{0}token", oauthUri);
+
+            string body = string.Format("resource={0}&client_id={1}&grant_type=password&username={2}&password={3}&client_secret={4}&scope=openid",
+                                            HttpUtility.UrlEncode(resourceId),
+                                            HttpUtility.UrlEncode(ClientID),
+                                            HttpUtility.UrlEncode(UserName),
+                                            HttpUtility.UrlEncode(Password),
+                                            HttpUtility.UrlEncode(SecretKey)
+                                            );
+#else
             string oauthUri = CommonAuthority + "/oauth2/";
 
             string uri = string.Format("{0}token", oauthUri);
@@ -217,8 +259,12 @@ namespace MailSim.ProvidersREST
                                             HttpUtility.UrlEncode(ClientID),
                                             HttpUtility.UrlEncode(UserName),
                                             HttpUtility.UrlEncode(Password));
-
+#endif
             return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (isRefresh) => null).Result;
+        }
+        internal static string GetAADToken(bool isRefresh)
+        {
+            return GetTokenHelper(_authenticationContext, AadServiceResourceId);
         }
 
         internal static string GetOutlookToken()
@@ -278,6 +324,14 @@ namespace MailSim.ProvidersREST
             }
 
             return accessToken;
+        }
+
+        private class UserHttp
+        {
+            public string UserPrincipalName { get; set; }
+            public string DisplayName { get; set; }
+            public string GivenName { get; set; }
+            public string SurName { get; set; }
         }
     }
 }
