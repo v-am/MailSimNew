@@ -262,14 +262,10 @@ namespace MailSim.ProvidersREST
 #endif
             return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (isRefresh) => null).Result;
         }
+
         internal static string GetAADToken(bool isRefresh)
         {
-            return GetTokenHelper(_authenticationContext, AadServiceResourceId);
-        }
-
-        internal static string GetOutlookToken()
-        {
-            return GetTokenHelper(_authenticationContext, OfficeResourceId);
+            return GetTokenHelper(_authenticationContext, AadServiceResourceId, isRefresh);
         }
 
         internal static string GetToken(string resourceId, bool isRefresh)
@@ -287,10 +283,10 @@ namespace MailSim.ProvidersREST
         // TODO: Find a way to call context.AcquireTokenAsync directly.
         private static async Task<string> GetTokenHelperAsync(AuthenticationContext context, string resourceId)
         {
-            return await Task.Run(() => GetTokenHelper(context, resourceId));
+            return await Task.Run(() => GetTokenHelper(context, resourceId, false));
         }
 
-        private static string GetTokenHelper(AuthenticationContext context, string resourceId, bool isRefresh=false)
+        private static string GetTokenHelper(AuthenticationContext context, string resourceId, bool isRefresh)
         {
             string accessToken = null;
 
