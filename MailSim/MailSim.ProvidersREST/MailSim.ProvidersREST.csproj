@@ -124,25 +124,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AddressBookProvider.cs" />
-    <Compile Include="AuthenticationHelper.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Helpers.cs" />
-    <Compile Include="HttpUtilSync.cs" />
+    <Compile Include="HTTP\AddressBookProviderHTTP.cs" />
+    <Compile Include="HTTP\AuthenticationHelperHTTP.cs" />
     <Compile Include="HTTP\BaseProviderHttp.cs" />
+    <Compile Include="HTTP\HttpUtilSync.cs" />
     <Compile Include="HTTP\MailFolderProviderHTTP.cs" />
     <Compile Include="HTTP\MailItemProviderHTTP.cs" />
     <Compile Include="HTTP\MailStoreProviderHTTP.cs" />
-    <Compile Include="MailStoreProviderBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SDK\AddressBookProviderSDK.cs" />
+    <Compile Include="SDK\AuthenticationHelperSDK.cs" />
     <Compile Include="SDK\MailFolderProviderSDK.cs" />
     <Compile Include="SDK\MailItemProviderSDK.cs" />
     <Compile Include="SDK\MailStoreProviderSDK.cs" />
     <Compile Include="HttpUtil.cs" />
+    <Compile Include="WellKnownFolders.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\MailSim.Common.csproj">

@@ -11,19 +11,18 @@ using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
-    class AddressBookProvider : IAddressBook
+    class AddressBookProviderSDK : IAddressBook
     {
         private readonly ActiveDirectoryClient _adClient;
 
-        public AddressBookProvider(ActiveDirectoryClient adClient)
+        public AddressBookProviderSDK(ActiveDirectoryClient adClient)
         {
             _adClient = adClient;
         }
 
         public IEnumerable<string> GetUsers(string match, int count)
         {
-//            return EnumerateUsers(match, count);
-            return EnumerateUsersHttp(match, count);
+            return EnumerateUsers(match, count);
         }
 
         public IEnumerable<string> GetDLMembers(string dLName, int count)
@@ -55,38 +54,6 @@ namespace MailSim.ProvidersREST
             var members = GetFilteredItems(pagedMembers, count, (member) => member is User);
 
             return members.Select(m => (m as User).UserPrincipalName);
-        }
-
-        private IEnumerable<string> EnumerateUsersHttp(string match, int count)
-        {
-//            string uri = "https://graph/windows.net/" + AuthenticationHelper.TenantId;
-            string uri = "https://graph.windows.net/myorganization/users?api-version=beta";
-
-            if (string.IsNullOrEmpty(match) == false)
-            {
-                uri = AddFilters(uri, match, "userPrincipalName", "displayName", "givenName", "surName");
-            }
-
-            var users = HttpUtil.GetItemsAsync<IEnumerable<UserHttp>>(uri, AuthenticationHelper.GetAADToken).Result;
-
-            return users.Select(x => x.UserPrincipalName);
-        }
-
-        private static string AddFilters(string uri, string match, params string[] fields)
-        {
-            var sb = new StringBuilder(uri);
-
-            for (int i = 0; i < fields.Length; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append("%20or%20");
-                }
-
-                sb.AppendFormat("?$filter=startswith({0}, '{1}')", fields[i], match);
-            }
-
-            return sb.ToString();
         }
 
         private IEnumerable<string> EnumerateUsers(string match, int count)
@@ -148,13 +115,6 @@ namespace MailSim.ProvidersREST
                     }
                 }
             }
-        }
-        private class UserHttp
-        {
-            public string UserPrincipalName { get; set; }
-            public string DisplayName { get; set; }
-            public string GivenName { get; set; }
-            public string SurName { get; set; }
         }
     }
 }

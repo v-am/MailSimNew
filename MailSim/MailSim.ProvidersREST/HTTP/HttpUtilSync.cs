@@ -10,14 +10,14 @@ namespace MailSim.ProvidersREST
     {
         private readonly string _resourceId;
 
-        internal HttpUtilSync(string resourceId=AuthenticationHelper.OfficeResourceId)
+        internal HttpUtilSync(string resourceId= Constants.OfficeResourceId)
         {
             _resourceId = resourceId;
         }
 
         private string GetToken(bool isRefresh)
         {
-            return AuthenticationHelper.GetToken(_resourceId, isRefresh);
+            return AuthenticationHelperHTTP.GetToken(_resourceId, isRefresh);
         }
 
         internal T GetItem<T>(string uri)

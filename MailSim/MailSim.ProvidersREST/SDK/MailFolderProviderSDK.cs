@@ -202,12 +202,17 @@ namespace MailSim.ProvidersREST
         {
             string uri = string.Format("Folders/{0}/Messages/$count", folderId);
 
-            return new HttpUtilSync().GetItem<int>(uri);
+            return HttpUtil.GetItemAsync<int>(uri, GetToken).GetResult();
         }
 
         private int FoldersCountRequest()
         {
-            return new HttpUtilSync().GetItem<int>("Folders/$count");
+            return HttpUtil.GetItemAsync<int>("Folders/$count", GetToken).GetResult();
+        }
+
+        private string GetToken(bool isRefresh)
+        {
+            return AuthenticationHelperSDK.GetToken(Constants.OfficeResourceId);
         }
     }
 }

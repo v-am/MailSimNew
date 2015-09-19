@@ -9,11 +9,12 @@ using Newtonsoft.Json.Linq;
 
 namespace MailSim.ProvidersREST
 {
-    public class MailStoreProviderHTTP : MailStoreProviderBase, IMailStore
+    public class MailStoreProviderHTTP : IMailStore
     {
-        public MailStoreProviderHTTP(string userName, string password) :
-            base(userName, password)
+        public MailStoreProviderHTTP(string userName, string password)
         {
+            AuthenticationHelperHTTP.Initialize(userName, password);
+
             var user = HttpUtilSync.GetItem<User>(string.Empty);
             DisplayName = user.Id;
             RootFolder = new MailFolderProviderHTTP(null, DisplayName);
@@ -51,7 +52,7 @@ namespace MailSim.ProvidersREST
 
         public IMailFolder GetDefaultFolder(string name)
         {
-            string folderName = MapFolderName(name);
+            string folderName = WellKnownFolders.MapFolderName(name);
 
             if (folderName == null)
             {
@@ -63,7 +64,7 @@ namespace MailSim.ProvidersREST
 
         public IAddressBook GetGlobalAddressList()
         {
-            return GetGAL();
+            return new AddressBookProviderHTTP();
         }
 
         private class User
