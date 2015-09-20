@@ -1,9 +1,6 @@
 ﻿//#define USE_UNIFIED
 
-using Microsoft.Azure.ActiveDirectory.GraphClient;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
-using System.Threading.Tasks;
 
 using MailSim.Common;
 using System.Web;
@@ -27,13 +24,8 @@ namespace MailSim.ProvidersREST
         private static string TenantId { get; set; }
         private const string AadServiceResourceId = "https://graph.windows.net/";
 #endif
-//        private static readonly Uri ReturnUri = new Uri(Resources.ReturnUri);
-
         // Properties used for communicating with your Windows Azure AD tenant.
         private const string CommonAuthority = "https://login.microsoftonline.com/Common";
-        internal const string OfficeResourceId = "https://outlook.office365.com/";
-
-        private const string ModuleName = "AuthenticationHelper";
 
         //Property for storing and returning the authority used by the last authentication.
         private static string LastAuthority { get; set; }
@@ -112,10 +104,10 @@ namespace MailSim.ProvidersREST
                 var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
 #else
                 // Create our ActiveDirectory client.
-//                string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
+                string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
 
-//                string uri = "https://graph.windows.net/myorganization/users?api-version=beta";
-//                var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
+                string uri = "https://graph.windows.net/myorganization/users?api-version=1.5";
+                var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
 #endif
             }
         }
@@ -147,9 +139,7 @@ namespace MailSim.ProvidersREST
                 Log.Out(Log.Severity.Info, "", "Got new access token:" + _tokenResponses[resourceId].access_token);
             }
 
-            string accessToken = _tokenResponses[resourceId].access_token;
-
-            return accessToken;
+            return _tokenResponses[resourceId].access_token;
         }
 
         private static AccessTokenResponse QueryTokenResponse(string resourceId)

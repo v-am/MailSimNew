@@ -8,7 +8,7 @@ namespace MailSim.ProvidersREST.HTTP
 {
     internal class BaseProviderHttp
     {
-        static HttpUtilSync _httpUtilSync = new HttpUtilSync(AuthenticationHelperHTTP.OfficeResourceId);
+        static HttpUtilSync _httpUtilSync = new HttpUtilSync(Constants.OfficeResourceId);
 
         internal HttpUtilSync HttpUtilSync
         {

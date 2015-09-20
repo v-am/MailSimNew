@@ -10,7 +10,7 @@ namespace MailSim.ProvidersREST
     {
         private readonly string _resourceId;
 
-        internal HttpUtilSync(string resourceId= Constants.OfficeResourceId)
+        internal HttpUtilSync(string resourceId = Constants.OfficeResourceId)
         {
             _resourceId = resourceId;
         }
@@ -56,7 +56,6 @@ namespace MailSim.ProvidersREST
 
         internal IEnumerable<T> EnumerateCollection<T>(string uri, int count)
         {
-#if true
             while (count > 0 && uri != null)
             {
                 var msgsColl = HttpUtil.GetCollectionAsync<IEnumerable<T>>(uri, GetToken).GetResult();
@@ -72,9 +71,6 @@ namespace MailSim.ProvidersREST
 
                 uri = msgsColl.NextLink;
             }
-#else
-            return HttpUtil.EnumerateCollection<T>(uri, count, GetToken).GetResult();
-#endif
         }
     }
 }

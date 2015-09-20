@@ -2,12 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 using MailSim.Common.Contracts;
-using Microsoft.Azure.ActiveDirectory.GraphClient;
-using Microsoft.Azure.ActiveDirectory.GraphClient.Extensions;
-using MailSim.Common;
 
 namespace MailSim.ProvidersREST
 {
@@ -70,13 +66,18 @@ namespace MailSim.ProvidersREST
 
             if (string.IsNullOrEmpty(match) == false)
             {
-                uri = AddFilters(uri, match, "userPrincipalName", "displayName", "givenName"/*, "surName"*/);
+                uri = AddFilters(uri, match,
+                            "userPrincipalName",
+                            "displayName",
+                            "givenName"/*, "surName"*/);
+
                 uri += '&';
             }
 
             uri = AppendVersion(uri);
 
-            var users = HttpUtil.GetItemsAsync<IEnumerable<UserHttp>>(uri, AuthenticationHelperHTTP.GetAADToken).Result;
+//            var users = HttpUtil.GetItemsAsync<IEnumerable<UserHttp>>(uri, AuthenticationHelperHTTP.GetAADToken).Result;
+            var users = new HttpUtilSync(Constants.AadServiceResourceId).EnumerateCollection<UserHttp>(uri, count);
 
             return users.Select(x => x.UserPrincipalName);
         }
