@@ -65,8 +65,8 @@ namespace MailSim.ProvidersREST
             {
                 HttpResponseMessage response = await SendRequestAsync(method, uri, body, getToken, isRefresh);
 
-                string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+//                Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
 
                 if (response.IsSuccessStatusCode)
                 {

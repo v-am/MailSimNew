@@ -15,9 +15,9 @@ namespace MailSim.ProvidersREST
     internal static class AuthenticationHelperHTTP
     {
 #if USE_UNIFIED   // using Unified App registration
-        private static readonly string ClientID = "c6de72e6-5aff-4491-97e5-b1b7a419d592";
-        private static string TenantId = "702cfb5c-c600-4b2d-962a-21ceb2c260ae";
-        private static string SecretKey = "W2RM2RMxM2a1VIP8VT1X/4muQEOL3AnqlZXQiLpSCEg=";
+        private const string ClientID = "c6de72e6-5aff-4491-97e5-b1b7a419d592";
+        private const string TenantId = "702cfb5c-c600-4b2d-962a-21ceb2c260ae";
+        private const string SecretKey = "W2RM2RMxM2a1VIP8VT1X/4muQEOL3AnqlZXQiLpSCEg=";
         private const string AadServiceResourceId = "https://graph.microsoft.com/";
 #else
         private static readonly string ClientID = Resources.ClientID;

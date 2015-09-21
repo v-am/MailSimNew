@@ -58,6 +58,13 @@ namespace MailSim
 
             string mailboxName = mailStore.DisplayName;
 
+            var gal0 = mailStore.GetGlobalAddressList();
+
+            var members0 = gal0.GetDLMembers("TestGroup", 20);
+
+            foreach (var m in members0)
+                Console.WriteLine(m);
+
             // Display all top folders in the mailbox
             IMailFolder rootFolder = mailStore.RootFolder;
 
