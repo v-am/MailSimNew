@@ -185,7 +185,7 @@ namespace MailSim.ProvidersREST
 #endif
             }
 
-            return HttpUtilSync.EnumerateCollection<MailItemProviderHTTP.Message>(uri, count);
+            return HttpUtilSync.GetItems<MailItemProviderHTTP.Message>(uri, count);
         }
 
         private static void StartNotificationListener(string id, Action<IMailItem> callback)
@@ -196,7 +196,7 @@ namespace MailSim.ProvidersREST
         {
             string uri = _folder == null ? "Folders" : Uri + "/ChildFolders";
 
-            var folders = HttpUtilSync.EnumerateCollection<Folder>(uri, int.MaxValue);
+            var folders = HttpUtilSync.GetItems<Folder>(uri, int.MaxValue);
 
             return folders.Select(f => new MailFolderProviderHTTP(f));
         }

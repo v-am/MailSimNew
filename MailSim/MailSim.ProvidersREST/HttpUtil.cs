@@ -23,16 +23,9 @@ namespace MailSim.ProvidersREST
             return await DoHttp<EmptyBody,T>(HttpMethod.Get, uri, null, getToken);
         }
 
-        internal static async Task<T> GetItemsAsync<T>(string uri, TokenFunc getToken)
-        {
-            var coll = await GetCollectionAsync<T>(uri, getToken);
-
-            return coll.value;
-        }
-
         internal static async Task<ODataCollection<T>> GetCollectionAsync<T>(string uri, TokenFunc getToken)
         {
-            return await DoHttp<EmptyBody, ODataCollection<T>>(HttpMethod.Get, uri, null, getToken);
+            return await GetItemAsync<ODataCollection<T>>(uri, getToken);
         }
 
         internal static async Task<T> PostItemAsync<T>(string uri, T item, TokenFunc getToken)
@@ -59,14 +52,11 @@ namespace MailSim.ProvidersREST
         {
             Log.Out(Log.Severity.Info, "DoHttp", string.Format("Uri=[{0}]", uri));
 
-            bool isRefresh = false;
-
-            while (true)
+            for (bool isRefresh = false; ;)
             {
                 HttpResponseMessage response = await SendRequestAsync(method, uri, body, getToken, isRefresh);
 
                 string jsonResponse = await response.Content.ReadAsStringAsync();
-//                Log.Out(Log.Severity.Info, "DoHttp", "Got response!");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -123,16 +113,6 @@ namespace MailSim.ProvidersREST
             }
         }
 
-        private class ODataError
-        {
-            public class Error
-            {
-                public string code { get; set; }
-                public string message { get; set; }
-            }
-            public Error error { get; set; }
-        }
-
         internal static async Task<TResult> DoHttp<TBody, TResult>(string methodName, string uri, TBody body, TokenFunc getToken)
         {
             return await DoHttp<TBody,TResult>(new HttpMethod(methodName), uri, body, getToken);
@@ -151,6 +131,16 @@ namespace MailSim.ProvidersREST
         private static HttpClient GetHttpClient()
         {
             return new HttpClient();
+        }
+
+        private class ODataError
+        {
+            public class Error
+            {
+                public string code { get; set; }
+                public string message { get; set; }
+            }
+            public Error error { get; set; }
         }
 
         internal class ODataCollection<TCollection>

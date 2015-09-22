@@ -1,6 +1,4 @@
-﻿//#define USE_UNIFIED
-
-using System;
+﻿using System;
 
 using MailSim.Common;
 using System.Web;
@@ -14,16 +12,10 @@ namespace MailSim.ProvidersREST
     /// </summary>
     internal static class AuthenticationHelperHTTP
     {
-#if USE_UNIFIED   // using Unified App registration
-        private const string ClientID = "c6de72e6-5aff-4491-97e5-b1b7a419d592";
-        private const string TenantId = "702cfb5c-c600-4b2d-962a-21ceb2c260ae";
-        private const string SecretKey = "W2RM2RMxM2a1VIP8VT1X/4muQEOL3AnqlZXQiLpSCEg=";
-        private const string AadServiceResourceId = "https://graph.microsoft.com/";
-#else
         private static readonly string ClientID = Resources.ClientID;
         private static string TenantId { get; set; }
         private const string AadServiceResourceId = "https://graph.windows.net/";
-#endif
+
         // Properties used for communicating with your Windows Azure AD tenant.
         private const string CommonAuthority = "https://login.microsoftonline.com/Common";
 
@@ -35,15 +27,7 @@ namespace MailSim.ProvidersREST
 
         private static string UserName { get; set; }
         private static string Password { get; set; }
-#if false
-        private class AuthResponse
-        {
-            public bool admin_consent { get; set; }
-            public string code { get; set; }
-            public string session_state { get; set; }
-            public string state { get; set; }
-        }
-#endif
+
         private class AccessTokenResponse
         {
             public string access_token { get; set; }
@@ -56,60 +40,12 @@ namespace MailSim.ProvidersREST
             public string token_type { get; set; }
         }
 
-        private class IdToken
-        {
-            public string tid { get; set; }
-        }
-
         private static IDictionary<string, AccessTokenResponse> _tokenResponses = new Dictionary<string, AccessTokenResponse>();
 
         internal static void Initialize(string userName, string password)
         {
             UserName = userName;
             Password = password;
-#if false
-            var token = GetTokenHelperHttp(AadServiceResourceId, false);
-            var tokenResponse = _tokenResponses[AadServiceResourceId];
-
-            var id_token = tokenResponse.id_token;
-
-            IdToken idToken = null;
-
-            try
-            {
-                //                    var json = JWT.JsonWebToken.Decode(id_token, string.Empty, verify:false);
-                idToken = JWT.JsonWebToken.DecodeToObject<IdToken>(id_token, string.Empty, verify: false);
-            }
-            catch (Exception ex)
-            {
-            }
-
-            // Check the token
-            if (string.IsNullOrEmpty(token))
-            {
-                // User cancelled sign-in
-                throw new Exception("Sign-in cancelled");  // assuming we don't want to continue
-            }
-            else
-#endif
-            {
-#if USE_UNIFIED
-                string uri = "https://graph.microsoft.com/beta/me";
-                var xxx = HttpUtil.GetItemAsync<UserHttp>(uri, GetAADToken).Result;
-
-                uri = "https://graph.microsoft.com/beta/" + idToken.tid + "/users/" + "admin@mailsimdemo.onmicrosoft.com";
-                var yyy = HttpUtil.GetItemAsync<UserHttp>(uri, GetAADToken).Result;
-
-                uri = "https://graph.microsoft.com/beta/" + idToken.tid + "/users/";
-                var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
-#else
-                // Create our ActiveDirectory client.
-                //string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
-
-                //string uri = "https://graph.windows.net/myorganization/users?api-version=1.5";
-                //var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
-#endif
-            }
         }
 
         private static string TokenUri
@@ -136,7 +72,8 @@ namespace MailSim.ProvidersREST
 
                 Log.Out(Log.Severity.Info, "", "Sending request for new token:" + body);
 
-                var newAuthResponse = HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (dummy) => null).Result;
+                var newAuthResponse = DoTokenHttp(body);
+
                 _tokenResponses[resourceId] = newAuthResponse;
 
                 Log.Out(Log.Severity.Info, "", "Got new access token:" + _tokenResponses[resourceId].access_token);
@@ -152,26 +89,18 @@ namespace MailSim.ProvidersREST
 
         private static AccessTokenResponse QueryTokenResponse(string resourceId)
         {
-#if USE_UNIFIED
-            string oauthUri = CommonAuthority + "/oauth2/";
-
-            string uri = string.Format("{0}token", oauthUri);
-
-            string body = string.Format("resource={0}&client_id={1}&grant_type=password&username={2}&password={3}&client_secret={4}&scope=openid",
-                                            HttpUtility.UrlEncode(resourceId),
-                                            HttpUtility.UrlEncode(ClientID),
-                                            HttpUtility.UrlEncode(UserName),
-                                            HttpUtility.UrlEncode(Password),
-                                            HttpUtility.UrlEncode(SecretKey)
-                                            );
-#else
             string body = string.Format("resource={0}&client_id={1}&grant_type=password&username={2}&password={3}&scope=openid",
                                             HttpUtility.UrlEncode(resourceId),
                                             HttpUtility.UrlEncode(ClientID),
                                             HttpUtility.UrlEncode(UserName),
                                             HttpUtility.UrlEncode(Password));
-#endif
-            return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (isRefresh) => null).Result;
+
+            return DoTokenHttp(body);
+        }
+
+        private static AccessTokenResponse DoTokenHttp(string body)
+        {
+            return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (dummy) => null).GetResult();
         }
 
         internal static string GetAADToken(bool isRefresh)
@@ -187,14 +116,6 @@ namespace MailSim.ProvidersREST
         private static string GetTokenHelper(string resourceId, bool isRefresh)
         {
             return GetTokenHelperHttp(resourceId, isRefresh);
-        }
-
-        private class UserHttp
-        {
-            public string UserPrincipalName { get; set; }
-            public string DisplayName { get; set; }
-            public string GivenName { get; set; }
-            public string SurName { get; set; }
         }
     }
 }

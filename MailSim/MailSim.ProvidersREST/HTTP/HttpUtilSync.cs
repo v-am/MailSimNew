@@ -25,11 +25,6 @@ namespace MailSim.ProvidersREST
             return HttpUtil.GetItemAsync<T>(uri, GetToken).GetResult();
         }
 
-        internal T GetItems<T>(string uri)
-        {
-            return HttpUtil.GetItemsAsync<T>(uri, GetToken).GetResult();
-        }
-
         internal T PostItem<T>(string uri, T item = default(T))
         {
             return HttpUtil.PostItemAsync<T>(uri, item, GetToken).GetResult();
@@ -54,9 +49,9 @@ namespace MailSim.ProvidersREST
             return HttpUtil.PatchItemAsync<T>(uri, item, GetToken).GetResult();
         }
 
-        internal IEnumerable<T> EnumerateCollection<T>(string uri, int count)
+        internal IEnumerable<T> GetItems<T>(string uri, int count)
         {
-            while (count > 0 && uri != null)
+            while (count > 0 && string.IsNullOrEmpty(uri) == false)
             {
                 var msgsColl = HttpUtil.GetCollectionAsync<IEnumerable<T>>(uri, GetToken).GetResult();
 

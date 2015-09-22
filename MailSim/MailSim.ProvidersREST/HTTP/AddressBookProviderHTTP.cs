@@ -38,7 +38,7 @@ namespace MailSim.ProvidersREST
 
             var httpProxy = new HttpUtilSync(Constants.AadServiceResourceId);
 
-            var groups = httpProxy.EnumerateCollection<GroupHttp>(uri, 100);
+            var groups = httpProxy.GetItems<GroupHttp>(uri, 100);
 
             // Look for the group with exact name match
             var group = groups.FirstOrDefault((g) => g.DisplayName.EqualsCaseInsensitive(dLName));
@@ -50,7 +50,7 @@ namespace MailSim.ProvidersREST
 
             uri = BaseUri + "groups/" + group.ObjectId + "/members?" + ApiVersion;
 
-            var members = httpProxy.EnumerateCollection<UserHttp>(uri, count);
+            var members = httpProxy.GetItems<UserHttp>(uri, count);
 
             return members.Select(x => x.UserPrincipalName);
         }
@@ -73,7 +73,7 @@ namespace MailSim.ProvidersREST
             uri += ApiVersion;
 
             var users = new HttpUtilSync(Constants.AadServiceResourceId)
-                    .EnumerateCollection<UserHttp>(uri, count);
+                    .GetItems<UserHttp>(uri, count);
 
             return users.Select(x => x.UserPrincipalName);
         }
