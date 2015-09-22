@@ -35,7 +35,7 @@ namespace MailSim.ProvidersREST
 
         private static string UserName { get; set; }
         private static string Password { get; set; }
-
+#if false
         private class AuthResponse
         {
             public bool admin_consent { get; set; }
@@ -43,7 +43,7 @@ namespace MailSim.ProvidersREST
             public string session_state { get; set; }
             public string state { get; set; }
         }
-
+#endif
         private class AccessTokenResponse
         {
             public string access_token { get; set; }
@@ -104,11 +104,19 @@ namespace MailSim.ProvidersREST
                 var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
 #else
                 // Create our ActiveDirectory client.
-                string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
+                //string authority = String.IsNullOrEmpty(LastAuthority) ? CommonAuthority : LastAuthority;
 
-                string uri = "https://graph.windows.net/myorganization/users?api-version=1.5";
-                var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
+                //string uri = "https://graph.windows.net/myorganization/users?api-version=1.5";
+                //var zzz = HttpUtil.GetItemsAsync<List<UserHttp>>(uri, GetAADToken).Result;
 #endif
+            }
+        }
+
+        private static string TokenUri
+        {
+            get
+            {
+                return CommonAuthority + "/oauth2/" + "token";
             }
         }
 
@@ -116,13 +124,8 @@ namespace MailSim.ProvidersREST
         {
             AccessTokenResponse tokenResponse;
 
-            if (_tokenResponses.TryGetValue(resourceId, out tokenResponse) == false)
+            if (isRefresh)
             {
-                _tokenResponses[resourceId] = QueryTokenResponse(resourceId);
-            }
-            else if (isRefresh)
-            {
-                string uri = CommonAuthority + "/oauth2/" + "token";
                 var authResponse = _tokenResponses[resourceId];
 
                 string body = string.Format("grant_type=refresh_token&refresh_token={0}&client_id={1}&resource={2}",
@@ -133,10 +136,15 @@ namespace MailSim.ProvidersREST
 
                 Log.Out(Log.Severity.Info, "", "Sending request for new token:" + body);
 
-                var newAuthResponse = HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (dummy) => null).Result;
+                var newAuthResponse = HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (dummy) => null).Result;
                 _tokenResponses[resourceId] = newAuthResponse;
 
                 Log.Out(Log.Severity.Info, "", "Got new access token:" + _tokenResponses[resourceId].access_token);
+            }
+
+            if (_tokenResponses.TryGetValue(resourceId, out tokenResponse) == false)
+            {
+                _tokenResponses[resourceId] = QueryTokenResponse(resourceId);
             }
 
             return _tokenResponses[resourceId].access_token;
@@ -157,17 +165,13 @@ namespace MailSim.ProvidersREST
                                             HttpUtility.UrlEncode(SecretKey)
                                             );
 #else
-            string oauthUri = CommonAuthority + "/oauth2/";
-
-            string uri = string.Format("{0}token", oauthUri);
-
             string body = string.Format("resource={0}&client_id={1}&grant_type=password&username={2}&password={3}&scope=openid",
                                             HttpUtility.UrlEncode(resourceId),
                                             HttpUtility.UrlEncode(ClientID),
                                             HttpUtility.UrlEncode(UserName),
                                             HttpUtility.UrlEncode(Password));
 #endif
-            return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", uri, body, (isRefresh) => null).Result;
+            return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (isRefresh) => null).Result;
         }
 
         internal static string GetAADToken(bool isRefresh)

@@ -119,7 +119,7 @@ namespace MailSim.ProvidersREST
 
             using (HttpClient client = GetHttpClient())
             {
-                return await client.SendAsync(request).ConfigureAwait(false);
+                return await client.SendAsync(request);
             }
         }
 
