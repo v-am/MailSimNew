@@ -143,7 +143,15 @@ namespace MailSim.ProvidersOM
                 if (Process.GetProcessesByName("OUTLOOK").Count() > 0)
                 {
                     Log.Out(Log.Severity.Info, "Connection", "Connecting to an existing Outlook instance");
-                    _outlook = Marshal.GetActiveObject("Outlook.Application") as Outlook.Application;
+                    try
+                    {
+                        _outlook = (Outlook.Application) Marshal.GetActiveObject("Outlook.Application");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+
                     _keepOutlookRunning = true;
                     return;
                 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace MailSim.ProvidersREST
 {
@@ -18,6 +14,7 @@ namespace MailSim.ProvidersREST
         private string GetToken(bool isRefresh)
         {
             return AuthenticationHelperHTTP.GetToken(_resourceId, isRefresh);
+//            return AuthenticationHelperSDK.GetToken(_resourceId);
         }
 
         internal T GetItem<T>(string uri)
@@ -28,6 +25,11 @@ namespace MailSim.ProvidersREST
         internal T PostItem<T>(string uri, T item = default(T))
         {
             return HttpUtil.PostItemAsync<T>(uri, item, GetToken).GetResult();
+        }
+
+        internal TResult PostItem2<TBody, TResult>(string uri, TBody item)
+        {
+            return HttpUtil.PostItemAsync2<TBody, TResult>(uri, item, GetToken).GetResult();
         }
 
         internal T PostItemDynamic<T>(string uri, dynamic body)
@@ -49,6 +51,8 @@ namespace MailSim.ProvidersREST
             return HttpUtil.PatchItemAsync<T>(uri, item, GetToken).GetResult();
         }
 
+        // This method relies on the default page size.
+        // There is no way to fetch less than default page size
         internal IEnumerable<T> GetItems<T>(string uri, int count)
         {
             while (count > 0 && string.IsNullOrEmpty(uri) == false)

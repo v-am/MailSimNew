@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MailSim.Common.Contracts;
-using Microsoft.Azure.ActiveDirectory.GraphClient;
-using Newtonsoft.Json.Linq;
 
 namespace MailSim.ProvidersREST
 {
@@ -14,6 +9,7 @@ namespace MailSim.ProvidersREST
         public MailStoreProviderHTTP(string userName, string password)
         {
             AuthenticationHelperHTTP.Initialize(userName, password);
+//            AuthenticationHelperSDK.Initialize(userName, password);
 
             var user = HttpUtilSync.GetItem<User>(string.Empty);
             DisplayName = user.Id;

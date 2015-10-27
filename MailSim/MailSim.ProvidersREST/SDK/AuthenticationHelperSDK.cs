@@ -1,14 +1,9 @@
-﻿//#define USE_UNIFIED
-
-using Microsoft.Azure.ActiveDirectory.GraphClient;
+﻿using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Threading.Tasks;
 
 using MailSim.Common;
-using System.Web;
-using System.Collections.Generic;
-
 
 namespace MailSim.ProvidersREST
 {
@@ -17,16 +12,10 @@ namespace MailSim.ProvidersREST
     /// </summary>
     internal static class AuthenticationHelperSDK
     {
-#if USE_UNIFIED   // using Unified App registration
-        private static readonly string ClientID = "c6de72e6-5aff-4491-97e5-b1b7a419d592";
-        private static string TenantId = "702cfb5c-c600-4b2d-962a-21ceb2c260ae";
-        private static string SecretKey = "W2RM2RMxM2a1VIP8VT1X/4muQEOL3AnqlZXQiLpSCEg=";
-        private const string AadServiceResourceId = "https://graph.microsoft.com/";
-#else
         private static readonly string ClientID = Resources.ClientID;
         private static string TenantId { get; set; }
         private const string AadServiceResourceId = "https://graph.windows.net/";
-#endif
+
         private static readonly Uri ReturnUri = new Uri(Resources.ReturnUri);
 
         // Properties used for communicating with your Windows Azure AD tenant.
@@ -49,6 +38,11 @@ namespace MailSim.ProvidersREST
 
         private static string UserName { get; set; }
         private static string Password { get; set; }
+
+        internal static void Initialize(string userName, string password)
+        {
+            GetGraphClientAsync(userName, password).GetResult();
+        }
 
         /// <summary>
         /// Checks that a Graph client is available.
@@ -114,7 +108,6 @@ namespace MailSim.ProvidersREST
 
         // Get an access token for the given context and resourceId. An attempt is first made to 
         // acquire the token silently. If that fails, then we try to acquire the token by prompting the user.
-        // TODO: Find a way to call context.AcquireTokenAsync directly.
         private static async Task<string> GetTokenHelperAsync(AuthenticationContext context, string resourceId)
         {
             return await Task.Run(() => GetTokenHelper(context, resourceId));

@@ -1,6 +1,4 @@
-﻿using System;
-
-using MailSim.Common;
+﻿using MailSim.Common;
 using System.Web;
 using System.Collections.Generic;
 
@@ -13,18 +11,11 @@ namespace MailSim.ProvidersREST
     internal static class AuthenticationHelperHTTP
     {
         private static readonly string ClientID = Resources.ClientID;
-        private static string TenantId { get; set; }
         private const string AadServiceResourceId = "https://graph.windows.net/";
 
         // Properties used for communicating with your Windows Azure AD tenant.
         private const string CommonAuthority = "https://login.microsoftonline.com/Common";
-
-        //Property for storing and returning the authority used by the last authentication.
-        private static string LastAuthority { get; set; }
-        //Property for storing the tenant id so that we can pass it to the ActiveDirectoryClient constructor.
-        // Property for storing the logged-in user so that we can display user properties later.
-        internal static string LoggedInUser { get; set; }
-
+ 
         private static string UserName { get; set; }
         private static string Password { get; set; }
 
@@ -44,6 +35,11 @@ namespace MailSim.ProvidersREST
 
         internal static void Initialize(string userName, string password)
         {
+            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
+            {
+                throw new System.Exception("No user name or password in config file!");
+            }
+
             UserName = userName;
             Password = password;
         }
@@ -58,8 +54,6 @@ namespace MailSim.ProvidersREST
 
         private static string GetTokenHelperHttp(string resourceId, bool isRefresh)
         {
-            AccessTokenResponse tokenResponse;
-
             if (isRefresh)
             {
                 var authResponse = _tokenResponses[resourceId];
@@ -76,10 +70,10 @@ namespace MailSim.ProvidersREST
 
                 _tokenResponses[resourceId] = newAuthResponse;
 
-                Log.Out(Log.Severity.Info, "", "Got new access token:" + _tokenResponses[resourceId].access_token);
+                Log.Out(Log.Severity.Info, "", "Got new access token:" + newAuthResponse.access_token);
             }
 
-            if (_tokenResponses.TryGetValue(resourceId, out tokenResponse) == false)
+            if (_tokenResponses.ContainsKey(resourceId) == false)
             {
                 _tokenResponses[resourceId] = QueryTokenResponse(resourceId);
             }
@@ -101,11 +95,6 @@ namespace MailSim.ProvidersREST
         private static AccessTokenResponse DoTokenHttp(string body)
         {
             return HttpUtil.DoHttp<string, AccessTokenResponse>("POST", TokenUri, body, (dummy) => null).GetResult();
-        }
-
-        internal static string GetAADToken(bool isRefresh)
-        {
-            return GetTokenHelper(AadServiceResourceId, isRefresh);
         }
 
         internal static string GetToken(string resourceId, bool isRefresh)

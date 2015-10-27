@@ -61,7 +61,7 @@ namespace MailSim.ProvidersREST {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to d3d31682-9be1-4ea5-82cc-8bceb2405249.
+        ///   Looks up a localized string similar to a59e6e79-302a-46fe-97ef-dc9b67c186d7.
         /// </summary>
         internal static string ClientID {
             get {

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
@@ -8,7 +7,6 @@ using System.Dynamic;
 using System.Linq;
 using MailSim.Common;
 using System.Text;
-using System;
 
 namespace MailSim.ProvidersREST
 {
@@ -33,6 +31,11 @@ namespace MailSim.ProvidersREST
             return await DoHttp<T, T>(HttpMethod.Post, uri, item, getToken);
         }
 
+        internal static async Task<TResult> PostItemAsync2<TBody, TResult>(string uri, TBody item, TokenFunc getToken)
+        {
+            return await DoHttp<TBody, TResult>(HttpMethod.Post, uri, item, getToken);
+        }
+
         internal static async Task<T> PostItemDynamicAsync<T>(string uri, dynamic body, TokenFunc getToken)
         {
             return await DoHttp<ExpandoObject, T>(HttpMethod.Post, uri, body, getToken);
@@ -52,7 +55,7 @@ namespace MailSim.ProvidersREST
         {
             Log.Out(Log.Severity.Info, "DoHttp", string.Format("Uri=[{0}]", uri));
 
-            for (bool isRefresh = false; ;)
+            for (bool isRefresh = false; ; isRefresh = true)
             {
                 HttpResponseMessage response = await SendRequestAsync(method, uri, body, getToken, isRefresh);
 
@@ -62,26 +65,39 @@ namespace MailSim.ProvidersREST
                 {
                     return JsonConvert.DeserializeObject<TResult>(jsonResponse);
                 }
-                else
+
+                var code = response.StatusCode;
+
+                if (isRefresh == false && code == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    var errorDetail = string.IsNullOrEmpty(jsonResponse) ? null : JsonConvert.DeserializeObject<ODataError>(jsonResponse);
-                    var code = response.StatusCode;
+                    var hasInvalidToken = response.Headers.WwwAuthenticate.FirstOrDefault(x => x.Parameter.Contains("error=\"invalid_token\"")) != null;
 
-                    if (isRefresh == false && code == System.Net.HttpStatusCode.Unauthorized)
+                    if (hasInvalidToken)
                     {
-                        var err = response.Headers.WwwAuthenticate.FirstOrDefault(x => x.Parameter.Contains("error=\"invalid_token\""));
-
-                        if (err != null)
-                        {
-                            Log.Out(Log.Severity.Info, "DoHttp", "Found invalid_token!!!");
-                            isRefresh = true;
-                            continue;
-                        }
+                        Log.Out(Log.Severity.Info, "DoHttp", "Found invalid_token!!!");
+                        continue;
                     }
-
-                    throw new System.Exception(errorDetail == null ? code.ToString() : errorDetail.error.message);
                 }
+
+                throw new System.Exception(GetErrorMessage(jsonResponse, code));
             }
+        }
+
+        private static string GetErrorMessage(string jsonResponse, System.Net.HttpStatusCode code)
+        {
+            string errorMessage;
+
+            try
+            {
+                var errorDetail = string.IsNullOrEmpty(jsonResponse) ? null : JsonConvert.DeserializeObject<ODataError>(jsonResponse);
+                errorMessage = errorDetail.error.message;
+            }
+            catch
+            {
+                errorMessage = string.Format("Error code: {0}; response = \"{1}\"", code, jsonResponse);
+            }
+
+            return errorMessage;
         }
 
         private static async Task<HttpResponseMessage> SendRequestAsync<TBody>(HttpMethod method, string uri, TBody body, TokenFunc getToken, bool isRefresh)
@@ -96,6 +112,8 @@ namespace MailSim.ProvidersREST
                 }
                 else
                 {
+                    string json = JsonConvert.SerializeObject(body);
+
                     request.Content = new ObjectContent<TBody>(body, new JsonMediaTypeFormatter());
                 }
             }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Office365.OutlookServices;
 using MailSim.Common.Contracts;
 using Microsoft.OData.ProxyExtensions;
@@ -41,7 +39,7 @@ namespace MailSim.ProvidersREST
         {
             get
             {
-                return Name;    // TODO: is it the right thing to do?
+                return Name;
             }
         }
 
@@ -85,9 +83,8 @@ namespace MailSim.ProvidersREST
 
         public IEnumerable<IMailItem> GetMailItems(string filter, int count)
         {
-            // TODO: there is no way right now to filter mails server-side
             var pages = _folderFetcher.Value.Messages
-                .Take(100)      // set the page size
+                .Take(Math.Min(count, 100))      // set the page size
                 .ExecuteAsync()
                 .GetResult();
 
