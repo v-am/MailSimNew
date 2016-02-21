@@ -2,7 +2,6 @@
 using System.Web;
 using System.Collections.Generic;
 
-
 namespace MailSim.ProvidersREST
 {
     /// <summary>
