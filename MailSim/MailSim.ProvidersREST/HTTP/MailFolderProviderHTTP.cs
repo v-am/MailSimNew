@@ -123,13 +123,6 @@ namespace MailSim.ProvidersREST
         // TODO: Implement this after Notifications graduate from preview state
         public void UnRegisterItemAddEventHandler()
         {
-#if false
-            string baseUri = "https://outlook.office.com/api/beta/me";
-
-            string uri = string.Format("{0}/subscriptions('{1}')", baseUri, _subscriptionId);
-
-            Util.DeleteAsync(uri).Wait();
-#endif
         }
 
         internal string Handle
