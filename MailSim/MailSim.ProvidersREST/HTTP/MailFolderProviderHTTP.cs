@@ -100,24 +100,6 @@ namespace MailSim.ProvidersREST
         // TODO: Implement this after Notifications graduate from preview state
         public void RegisterItemAddEventHandler(Action<IMailItem> callback)
         {
-#if false
-            string baseUri = "https://outlook.office.com/api/beta/me";
-
-            string uri = baseUri + "/subscriptions";
-
-            var res = Util.DoHttp<SubscriptionRequest, SubscriptionResponse>("POST", uri, new SubscriptionRequest()
-            {
-                ResourceURL = string.Format("{0}/{1}/messages", baseUri, Uri),
-                Type = "#Microsoft.OutlookServices.PushSubscription",
-                CallbackURL = "https://webhook.azurewebsites.net/api/send/myNotifyClient",
-                ChangeType = "Created",
-                ClientState = "3250be24-1282-4b46-a41e-0e53b4cae73f"    // GUID
-            }).Result;
-
-            _subscriptionId = res.Id;
-
-            StartNotificationListener(res.Id, callback);
-#endif
         }
 
         // TODO: Implement this after Notifications graduate from preview state
